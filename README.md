@@ -1,2 +1,3 @@
 # JavaCore
-Java Basics
+
+- [Java Collections Framework](./collections/collections.md)
