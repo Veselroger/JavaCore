@@ -1,4 +1,4 @@
-# [←](../readme.md) <a id="home"></a> Java Exceptions
+# [←](./readme.md) <a id="home"></a> Java Exceptions
 
 ## Table of Contents:
 - [Exceptions](#exceptions)
