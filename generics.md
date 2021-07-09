@@ -1,4 +1,4 @@
-# [←](./readme.md) <a id="home"></a> Java Generics
+# [←](./README.md) <a id="home"></a> Java Generics
 
 ## Table of Contents:
 - [Java Generics](#generics)
