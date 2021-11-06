@@ -1,4 +1,4 @@
-# [←](./README.md) <a id="home"></a> Threads
+# [←](../README.md) <a id="home"></a> Threads
 
 ## Table of Contents:
 - [Process](#process)
@@ -39,7 +39,7 @@
 
 В рамках JDK поставляется утилита, при помощи которой можно посмотреть потоки, которые относятся к pid процесса JVM: **"[jstack](https://docs.oracle.com/en/java/javase/11/tools/jstack.html)"**.
 
-**Java Virtual Machine** умеет взаимодействовать с операционной системой и её планировщиком потоков. Разработчику же предоставлен своего рода API для работы с потоками. Часть этого API - специальный объект **java.lang.Thread**.
+**Java Virtual Machine** умеет взаимодействовать с операционной системой и её планировщиком потоков. Разработчику же предоставлен своего рода API для работы с потоками. Часть этого API - специальный класс **java.lang.Thread**.
 
 
 ## [↑](#home) <a id="thread"></a> Thread
@@ -225,7 +225,7 @@ public synchronized int capacity() {
 Заголовок объекта состоит из **Class Ptr** (ссылка на метаданные о классе объекта) и **Mark Word**, которое описывает состояие объекта. Подробнее см. в статье **"[Заголовок Java объекта](https://habr.com/ru/post/447848/)"**.
 Состояние объекта содержит хэш-код объекта,
 
-![](./img/concurrency/1_HeadStates.png)
+![](../img/concurrency/1_HeadStates.png)
 
 Заголовок содержит некий маркер, по которому JVM может понять состояние монитора. Например, если этот маркер равен "01" (см. картинку выше), то значит монитор ещё никем не занят (т.е. свободен).
 Как видно, монитор может быть **thin monitor** и **heavyweight monitor**.
@@ -411,11 +411,11 @@ service.shutdown();
 ExecutorService отличаются друг от друга тем, каким образом был настроен лежащий в основе их **ThreadPoolExecutor**.
 **ThreadPoolExecutor** - это пул потоков, в котором будут выполняться задачи:
 
-![](./img/concurrency/2_ExecutorServices.png)
+![](../img/concurrency/2_ExecutorServices.png)
 
 Конфигурация **ThreadPoolExecutor** выглядит следующим образом:
 
-![](./img/concurrency/3_ThreadPoolExecutor.png)
+![](../img/concurrency/3_ThreadPoolExecutor.png)
 
 На основе этих конфигураций настраиваются следующие конфигурации пулов:
 - **Single Thread Pool**
@@ -427,7 +427,7 @@ ExecutorService отличаются друг от друга тем, каким
 - **WorkStealingPool**
 Пул потоков, основанный на work stealing алгоритме и применяя ForkJoinPool.
 
-![](./img/concurrency/4_WorkStealing.png)
+![](../img/concurrency/4_WorkStealing.png)
 
 Кроме того, есть специальный вид пулов, которые позволяют выполнять задачи с отложенным стартом:
 ```java
@@ -477,7 +477,7 @@ public static CompletableFuture< String> getResult() {
 Начиная с Java 1.7 появился интересный механизм - **Fork Join Pool**.
 **Fork Join Pool** - это пул потоков, основанный на алгоритме work stealing:
 
-![](./img/concurrency/4_WorkStealing.png)
+![](../img/concurrency/4_WorkStealing.png)
 
 Таким образом каждый поток имеет свою очередь, в которую он кладёт задачи с одной стороны, а забирает с другой. Кроме того, когда задачи у потока кочаются, то поток может брать задачи у другого потока. Если задач нет, то задачи забирается из некоторой общей очереди, части которой ассоциированы с потоками.
 

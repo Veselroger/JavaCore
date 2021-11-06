@@ -1,4 +1,4 @@
-# [←](./README.md) <a id="home"></a> Java Generics
+# [←](../README.md) <a id="home"></a> Java Generics
 
 ## Table of Contents:
 - [Java Generics](#generics)
@@ -37,7 +37,7 @@ List<Integer> numbers = new ArrayList<>();
 Так как раньше дженериков не было и нужна совместимость со старым кодом, то при компиляции java кода в байт-код происходит стирание типов (**[Type Erasure](https://docs.oracle.com/javase/tutorial/java/generics/erasure.html)**), при котором дженерики заменяются типами, которые задают границы. В случае, если такие границы не указаны, то границы будут заданы типом Object.\
 Например:
 
-![](./img/generics/erasure.png)
+![](../img/generics/erasure.png)
 
 Но стоит так же отметить, что на самом деле стирание типов хоть и происходит, но всё же некоторая информация в некоторых случаях доступна и в runtime. Например, для анонимных классов:
 ```java

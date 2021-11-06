@@ -1,13 +1,13 @@
 # JavaCore
 
 - JVM
-    - [JVM, Bytecode and JIT](./jit.md)
-    - [Class Loaders](./classloaders.md)
-    - [Garbage Collection](./gc.md)
+    - [JVM, Bytecode and JIT](./jvm/jvm.md)
+    - [Class Loaders](./jvm/classloaders.md)
+    - [Garbage Collection](./jvm/gc.md)
 - Core
-    - [Exceptions](./exceptions.md)
-    - [Generics](./generics.md)
-    - [Collections Framework](./collections.md)
-    - [Stream API](./stream.md)
+    - [Exceptions](./core/exceptions.md)
+    - [Collections Framework](./core/collections.md)
+    - [Stream API](./core/stream.md)
+    - [Generics](./core/generics.md)
 - Concurrency
-    - [Threads](./threads.md)
+    - [Threads](./threads/threads.md)
