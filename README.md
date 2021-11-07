@@ -11,3 +11,5 @@
     - [Generics](./core/generics.md)
 - Concurrency
     - [Threads](./threads/threads.md)
+- Tools
+    - [Maven](./tools/maven.md)

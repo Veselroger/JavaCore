@@ -43,7 +43,8 @@ Comparator<Integer> myComp = (o1, o2) -> Integer.compare(o2.intValue(), o1.intVa
 Особенностью работы лямбд является то, что лямбды не компилируются в отдельный класс, как это делают анонимные классы. Кроме того, scope лямбд такой же, как и scope их окружения. То есть из лямбды доступен **this** и **super**, а shadowing переменных не работает.
 
 Кроме того, хотелось бы отметить, что хотя лямбды и похожи на анонимные классы, но у них есть ещё два очень важных отличия:
-- байткод лямбд генерируется "на лету", а не компилятором javac
+- байткод лямбд генерируется "на лету", а не компилятором javac\
+Подробнее см. **"[Behind the scenes: How do lambda expressions really work in Java?](https://blogs.oracle.com/javamagazine/post/behind-the-scenes-how-do-lambda-expressions-really-work-in-java)"**
 - исполнение лямбд "ленивое", т.е. не при объявлении, а при обращении
 
 
