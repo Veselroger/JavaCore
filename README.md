@@ -5,6 +5,7 @@
     - [Class Loaders](./jvm/classloaders.md)
     - [Garbage Collection](./jvm/gc.md)
 - Core
+    - [Data Types](./core/types.md)
     - [Exceptions](./core/exceptions.md)
     - [Collections Framework](./core/collections.md)
     - [Stream API](./core/stream.md)
