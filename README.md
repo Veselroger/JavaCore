@@ -4,8 +4,10 @@
     - [JVM, Bytecode and JIT](./jvm/jvm.md)
     - [Class Loaders](./jvm/classloaders.md)
     - [Garbage Collection](./jvm/gc.md)
+- Basics
+    - [Data Types](./basics/types.md)
+    - [OOP](./basics/oop.md)
 - Core
-    - [Data Types](./core/types.md)
     - [Exceptions](./core/exceptions.md)
     - [Collections Framework](./core/collections.md)
     - [Stream API](./core/stream.md)
