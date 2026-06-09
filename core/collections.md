@@ -20,25 +20,27 @@
 - [Equals & Hashcode](#equalsHashcode)
 
 
-## [↑](#home) <a id="intro"></a> Intro
-**Коллекции** - это группы объектов (элементов). Коллекции в Java представлены **"[Java Collections Framework](https://docs.oracle.com/javase/tutorial/collections/intro/index.html)"**.
+## [↑](#home) <a id="intro"></a> Collections Framework
+Collections are groups of objects (elements).\
+Collections in Java are represented by the **Java Collections Framework**.
 
-Во главе иерархии коллекций стоит интерфейс **java.util.Collection**:
+At the top of the collection hierarchy is the **java.util.Collection** interface:
 
 ![](../img/collections/1_CollectionFrameworkBase.png)
 
-Коллекция с точки зрения **java.util.Collection** - это некоторый абстрактный контейнер с элементами. Работая с коллекцией мы имеем только элемент/элементы и коллекцию. Это позволяет нам:
-- Добавлять в коллекцию (**add/addAll**), т.к. знаем про элемент
-- Удалять из коллекции (**remove/removeAll**), т.к. знаем про удаляемый элемент
-- Проверить наличие (**contains/containsAll**)
-- Оставить только те элементы, которые есть в другой коллекции (**retainAll**)
-- Посчитать элементы **size**
-- Проверить, есть ли что-то в коллекции **isEmpty**
+A collection, from the perspective of **java.util.Collection**, is an abstract container with elements.\
+When working with a collection, we only have element(s) and the collection. This allows us to:
+- Add to the collection (**add/addAll**), since we know about the element.
+- Remove from the collection (**remove/removeAll**), since we know about the element. We know about the element being removed
+- Check for presence (**contains/containsAll**)
+- Retain (i.e. keep) only those elements that are in another collection (**retainAll**)
+- Count elements (**size**)
+- Check if the collection contains anything (**isEmpty**)
 
-**java.util.Collection** не содержит методов получения элементов из коллекции, т.к. способ получения элемента (по индексу, только первый и т.д.) напрямую зависит от реализации.
+**java.util.Collection** does not contain methods for retrieving elements from a collection, since the method for retrieving an element (by index, only the first element, etc.) is implementation-dependent.
 
-Благодаря тому, что **java.util.Collection** наследуется от **java.lang.Iterable**, у любой коллекции можно получить **java.util.Iterator**.
-Это позволяет использовать любую коллекцию в цикле **[for-each loop](https://docs.oracle.com/javase/8/docs/technotes/guides/language/foreach.html)**:
+Because **java.util.Collection** inherits from **java.lang.Iterable**, you can get a **java.util.Iterator** from any collection.\
+This allows you to use any collection in a **[for-each loop](https://docs.oracle.com/javase/8/docs/technotes/guides/language/foreach.html)**:
 ```java
 public static void iterateCollection(Collection< String > collection) {
 	for(String item : collection) {
@@ -47,182 +49,288 @@ public static void iterateCollection(Collection< String > collection) {
 }
 ```
 
-Кроме того для всех коллекций начиная с Java 8 при помощи метода **spliterator()** можно получить **java.util.Spliterator** (итератор, который умеет split, т.е. разбиваться на более мелкие spliterator'ы), а в **Iterable** добавился метод **forEach** для обхода коллекции при помощи Consumer'а:
+Furthermore, for all collections since Java 8, you can use the **spliterator()** method to get a **java.util.Spliterator** (an iterator that can split, i.e., be broken down into smaller spliterators).\
+**Iterable** has a new **forEach** method for traversing a collection using a Consumer:
 ```java
 collection.forEach(item -> System.out.println(item));
 ```
 
-**java.util.Collection** состоит из трёх основных интерфейсов:
-- **[List](#list)** 
+**java.util.Collection** consists of three main interfaces:
+- **[List](#list)**
 - **[Set](#set)**
 - **[Queue](#queue)**
 
+**Map** is also part of the Java Collection Framework, although it is not a descendant of **java.util.Collection**.\
+According to **"[Java Collections API Design FAQ](https://docs.oracle.com/javase/8/docs/technotes/guides/collections/designfaq.html)"**, this is because **Map** consists of entries, each of which represents a key-value mapping.
+Therefore, it is not obvious what is considered an element.
+
+Also, there are interfaces to emphasize the orderliness of the elements: SortedSet, SortedMap.\
+Also, there are specific interfaces for navigation across the sorted elements: NavigableSet and NavigableMap.
+
+Specific **Sequenced Collection** interfaces were introduced in Java 21: **[What is a Sequenced Collection?](https://www.youtube.com/watch?v=nwGo4jRKbvo)**.
+
 ----
 
-## [↑](#home) <a id="queue"></a> Queue (очередь)
-**[java.util.Queue](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Queue.html)** (очередь) - это последовательность элементов, где крайние элементы последовательности называют **head** (голова) и **tail** (хвост).
+## [↑](#home) <a id="queue"></a> Queue
+**[java.util.Queue](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Queue.html)** (queue) is a sequence of elements, where the outermost elements of the sequence are called the **head** and **tail**.
 
-Получение элемента происходит **ВСЕГДА** из **head** (с лица).
+An element is ALWAYS retrieved from the **head**.
 
-**Основные методы очереди:**
+**Main Queue Methods:**
 
 ![](../img/collections/2_Queue.png)
 
-Таким образом, методы очереди можно разделить на две категории: методы бросающие исключения и методы, которые в случае проблем просто возвращают значение null или false.
+Thus, queue methods can be divided into two categories:
+- methods that throw exceptions
+- methods that simply return null or false in the event of a problem.
 
-Очереди можно разделить на две категории:
-- **unbounded** (без ограничения на кол-во элементов)
-- **bounded** (с ограничением кол-ва элементов)
-
+Queues can be divided into two categories:
+- **unbounded** (without a limit on the number of elements)
+- **bounded** (with a limit on the number of elements)
 
 ### [↑](#home) <a id="priorityQueue"></a> PriorityQueue
-**[PriorityQueue (Очередь с приоритетом)](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/PriorityQueue.html)** - это реализация очереди, основанная на алгоритме **двоичная куча** или **пирамида**, который так же называют **[Min Heap](https://www.educative.io/edpresso/min-heap-vs-max-heap)**:
+**[PriorityQueue (Priority Queue)](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/PriorityQueue.html)** is a queue implementation.\
+PriorityQueue based on the **binary heap** or **pyramid** algorithm, also called **[Min Heap](https://www.educative.io/edpresso/min-heap-vs-max-heap)**:
 
 ![](../img/collections/3_Heap.png)
 
-Таким образом вставка элементов происходит за logn, а достаётся каждый раз минимальный элемент:
+It's really convenient to store heap in the array. In that case we can put elements from left to right.\
+It's **NOT** a binary tree, so we can just follow the rule that parent **MUST BE** less than children.\
+It makes the implementation simple and efficient.\
+Also, it allows us to get the min element for the constant time from the ``queue[0]``.
 
-**Пример использования:**
+It works really efficient for insertion:
+
+![](../img/collections/heap_insert.png)
+
+Deletion works very similar: **[hello-byte: Heap Deletion Explained in 3 Minutes](https://www.youtube.com/shorts/XuZCJ5eeZf8)**.
+
+Thus Inserting elements takes logn times, and the minimum element is retrieved each time for the constant time:
+
+**Usage example:**
 ```java
 Queue<Integer> q = new PriorityQueue<>();
 q.add(2);
 q.add(3);
 System.out.println(q.poll()); // return 2
 ```
+It's useful for tasks that requires priority to handle.
 
-Чтобы из **Min Heap** сделать **Max Heap** нужно инвертировать компаратор:
+To convert a **Min Heap** to a **Max Heap**, you need to invert the comparator:
 ```java
 Queue<Integer> q;
 q = new PriorityQueue<>((a, b) -> Integer.compare(b, a));
-// или
+// or
 q=new PriorityQueue<>(Comparator.comparingInt(Integer::intValue).reversed());
 ```
 
-**Плюсы:** вставка нового элемента и получение элемента выполняется за **[логарифмическое время](https://habr.com/ru/post/195996/)**.
-Кроме того, "под капотом" элементы хранятся в массиве, который увеличивается при заполнении, т.е. данная очередь является **unbounded**. Так как там массив, то contains осуществляется за линейное время.
+**Pros:** Inserting and retrieving a new element takes **[logarithmic time](https://habr.com/ru/post/195996/)**.
+Furthermore, "under the hood," elements are stored in an array that grows when full, meaning this queue is **unbounded**. Since it's an array, the contains function executes in linear time.
 
-**Минусы:** НЕ предназначена для работы в многопоточной среде. Для многопоточного выполнения используется блокирующая версия:  PriorityBlockingQueue.
+**Cons:** It is NOT designed for multithreaded operation. For multithreaded execution, the blocking version is used: PriorityBlockingQueue.
 
-**Дополнительно:** Про структуру данных Heap: **"[Heaps 1 Introduction and Tree levels](https://youtu.be/BzQGPA_v-vc)"**
+**Additional:** About the Heap data structure: **"[Heaps 1 Introduction and Tree levels](https://youtu.be/BzQGPA_v-vc)"**
 
 
 ### [↑](#home) <a id="concurrentLinkedQueue"></a> ConcurrentLinkedQueue
-**ConcurrentLinkedQueue** - это очередь, которая разработана специально для использования в многопоточной среде. Данные очереди основаны на принципе **неблокирующей очереди**, который обеспечивается применением **Compare-And-Swap** (сравнение с обменом):
+**ConcurrentLinkedQueue** is a queue designed specifically for use in a multithreaded environment.\
+These queues are based on the **non-blocking queue** principle, which is achieved through the use of **Compare-And-Swap** (comparison and swap):
 
 ![](../img/collections/cas.png)
 
-Принцип прост - изменение производится только в том случае, если ожидаемое текущее состояние не изменяется в процессе. CAS обеспечивается поддержкой на уровне процессора и выполнение CAS "дешевле", чем механизмы синхронизации через локи и мониторы.
+The principle is simple: a change is made only if the expected current state does not change during the process.\
+CAS is supported at the processor level, and CAS execution is cheaper than synchronization mechanisms via locks and monitors:
 
-На эту тему есть отличный материал от IBM: "**[Introduction to nonblocking algorithms](https://www.ibm.com/developerworks/library/j-jtp04186/index.html)**".
+![](../img/collections/concurrentQueue.png)
 
-
-### [↑](#home) <a id="blockingQueue"></a> Blocking Queue (блокирующие очереди)
-**java.util.concurrent.BlockingQueue** представляют собой **thread-safe** очереди, в которых на добавление и на получение элемента поставлены локи. Данные очереди предназначены в первую очередь для реализации схем **producer-consumer**.
-
-Во-первых, интерфейс **java.util.concurrent.BlockingQueue** добавляет методы **put**/**take**, которые блокируют поток, если элемент не может быть получен сейчас (очередь пуста) или если элемент не может быть добавлен (очередь полная, если очередь bounded).
-
-Во-вторых, блокирующие очереди подразумевают гарантию **Memory consistency**, которая обеспечивается благодаря двум **ReentrantLock**: для добавления и для получения элементов.
-
-**Какие могут быть блокирующие очереди:**
-- [PriorityBlockingQueue](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/concurrent/PriorityBlockingQueue.html) : unbounded очередь с приоритетом
-- [SynchronousQueue](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/SynchronousQueue.html) : очередь, где добавление элемента ожидает, пока этот элемент не заберут. То есть эта такая очередь-синхронизатор всего из 1 элемента.
-- [DelayQueue](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/concurrent/DelayQueue.html) : очередь, где элементы становятся доступны лишь после прошествия какого-то времени
-- [ArrayBlockingQueue](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/concurrent/ArrayBlockingQueue.html) : bounded очередь на основе массива
-- [LinkedBlockingQueue](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/concurrent/LinkedBlockingQueue.html) : optionally-bounded queue based on linked nodes
-- [LinkedTransferQueue](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/concurrent/LinkedTransferQueue.html) : реализация интерфейса **[TransferQueue](https://poltora.info/ru/blog/synchronousqueue-ili-transferqueue/)**, который является наследником **BlockingQueue** и добавляется возможность при добавлении элемента в очередь ожидать, пока этот элемент заберут. Своего рода расширенная версия SynchronousQueue.
+It's useful for Event Loops systems like Netty framework.
 
 
-### [↑](#home) <a id="deque"></a> Deque (двусторонние очереди)
-**Double ended queue**, она же двусторонняя очередь - это очередь, работа с которой возможно как с head, так и с tail. Двусторонние очереди в Java выражены при помощи интерфейса **java.util.Deque**.
+### [↑](#home) <a id="blockingQueue"></a> Blocking Queue
+**java.util.concurrent.BlockingQueue** are thread-safe queues with locks on both adding and receiving elements.\
+These queues are primarily intended for implementing producer-consumer schemes.
 
-Самым интересным примером применения двусторонней очереди является так называемый **A-steal algorithm**:
+First, the **java.util.concurrent.BlockingQueue** interface adds **put**/**take** methods.\
+They block the thread if an element cannot be received immediately (the queue is empty) or if an element cannot be added (the queue is full, if the queue is bounded).
+
+Secondly, blocking queues imply a guarantee of **Memory consistency**, which is ensured by two **ReentrantLock** locks: one for waiting element availability and one for queue availability.
+
+**There are different types of blocking queues:**
+- [PriorityBlockingQueue](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/concurrent/PriorityBlockingQueue.html): an unbounded priority queue
+- [SynchronousQueue](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/SynchronousQueue.html): a queue where adding an element waits until that element is retrieved. In other words, this is a synchronizer queue with only one element.
+- [DelayQueue](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/concurrent/DelayQueue.html): a queue where elements become available only after a certain amount of time has passed.
+- [ArrayBlockingQueue](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/concurrent/ArrayBlockingQueue.html): a bounded queue based on an array.
+- [LinkedBlockingQueue](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/concurrent/LinkedBlockingQueue.html): an optionally bounded queue based on linked nodes.
+- [LinkedTransferQueue](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/concurrent/LinkedTransferQueue.html) : interface implementation **[TransferQueue](https://poltora.info/ru/blog/synchronousqueue-ili-transf
+
+It's important because they are quite different.\
+For example, **ArrayBlockingQueue** uses the same lock for adding and removing.\
+But **LinkedBlockingQueue** uses two different locks for adding and removing.
+
+**PriorityBlockingQueue** is a concurrent version of [Blocking Queue](#blockingQueue).\
+Concurrency works because the same lock is used for any queue changes. And because the heap is used (i.e. tree) the queue is unbounded.
+
+
+### [↑](#home) <a id="deque"></a> Deque (dequeues)
+For **java.util.Queue** an element is **ALWAYS** retrieved from the **head** and added to the **tail**!
+
+**Double-ended queue**, also known as a double-ended queue, is a queue that can be accessed from both the head and tail.
+Deques in Java are expressed using the **java.util.Deque** interface.
+
+Here it's interesting to compare **Stack** and **Queue/Deque**.
+
+
+In java we have a **java.util.Stack** that is **java.util.Vector** that extends **AbstractList**.\
+So, it means that stack is a list. Also, beacuse it uses Vector as a super class all methods for gettings/adding elements are synchronized.\
+The idea of stack:
+
+![](../img/collections/stack.png)
+
+As we can see, for Queue elements are added to the tail (addLast) and obtained/retrieved from the head (getFirst).\
+**Deque** allows us to use both approaches.\
+Also, its recommended to use **ArrayDeque** instead of **java.util.Stack** because it doesn't use the synchronization.
+
+For example, let's consider the Removing adjacent duplicates task:
+```java
+public static void main(String[] args) {
+	String s = "abbaca";
+	Deque<Character> stack = new ArrayDeque<>();
+	for (char chr : s.toCharArray()) {
+		if (!stack.isEmpty() && stack.peek() == chr) {
+			stack.pop();
+		} else {
+			stack.push(chr);
+		}
+	}
+	StringBuilder res = new StringBuilder();
+	stack.descendingIterator().forEachRemaining(res::append);
+	System.out.println(res);
+}
+``` 
+
+The most interesting example of a double-ended queue is the so-called **A-steal algorithm**:
 
 ![](../img/collections/4_WorkStealing.png)
 
-Это отличный пример разделения элементов на начало и конец списка. Разделив элемент таким образом уменьшается вероятность одновременной работы с одними и теми же элементами из разных потоков.
+This is an excellent example of dividing elements into the head and tail of a list. Dividing an element in this way reduces the likelihood of simultaneous access to the same elements from different threads.
 
-Примером двусторонних очередей являются: **ArrayDeque**, **ConcurrentLinkedDeque**, **LinkedBlockingDeque** и **LinkedList**.
-LinkedList особенно интересен, ведь он является одновременно и очередью (queue) и списком (List).
+Examples of double-ended queues include: **ArrayDeque**, **ConcurrentLinkedDeque**, **LinkedBlockingDeque**, and **LinkedList**.
 
+LinkedList is particularly interesting because it is both a queue and a List.
 
 ----
 
 ## [↑](#home) <a id="list"></a> List
-**Списки** - это последовательности элементов, у каждого из которых есть свой индекс, по которому данный элемент может быть получен. Списки выражены в Java при помощи интерфейса **java.util.List**.
+**Lists** are sequences of elements, each of which has an index by which the element can be retrieved.\
+Lists are expressed in Java using the **java.util.List** interface.
 
-Списки расширяют базовое поведение коллекций, добавляя возможность работать с элементами по их индексу. Кроме того, добавляют возможность получить **java.util.ListIterator** - итератор, который может перемещаться в обе стороны, а не только в одну, как это делает обычный итератор коллекций (т.к. зная индекс мы можем вернуться и к предыдущему элементу).
-Кроме того, списки позволяют получить sublist, который является представлением порции списка.
+Lists extend the basic behavior of collections by adding the ability to work with elements by their index.\
+They also add the ability to obtain a **java.util.ListIterator**—an iterator that can traverse in both directions, not just one, as with a regular collection iterator (since knowing the index, we can return to the previous element).
 
-Говоря про итератор стоит отметить, что итератор в списках fail-fast. Это означает, что когда создаётся итератор, то он запоминает кол-во изменений в списке. Если изначальный список будет изменён во время итерации кем-то сто стороны (вне итератора), то следующий сдвиг итератора приведёт к исключению **ConcurrentModificationException**. Таким образом, модифицировать списки лучше через метод коллекций **[removeIf](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/Collection.html#removeIf(java.util.function.Predicate\))** или через listIterator.
+Furthermore, lists allow you to obtain a sublist, which is a representation of a portion of the list (i.e. the specific List view).
 
-Говоря про списки стоит рассмотреть следующие реализации:
+Speaking of iterators, it's worth noting that the iterator in lists is **[fail-fast](https://www.youtube.com/watch?v=KvEsuJ5Tp0g)**.\
+This means that when an iterator is created, it remembers the number of changes to the list.\
+If the original list is modified while being iterated by someone outside the iterator, the next iterator shift will result in a **[ConcurrentModificationException](https://www.youtube.com/watch?v=IrahCREGwBo)**.\
+Therefore, it's better to modify lists using the **[removeIf](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/Collection.html#removeIf(java.util.function.Predicate\))** collection method or via listIterator.
+
+All lists extends **AbstractList** that has a specific field:
+```java 
+protected transient int modCount = 0;
+```
+This field can be treated as a list version.\
+Each created list iterator has expected modCount field. If it differ from list modCount - the concurrent exception is thrown.
+
+There are some collections with safe iterators: CopyOnWriteArrayList / CopyOnWriteArraySet\
+They are safe because any changes of collection create a new data collection.\
+It means that each iterator has it's own reference to the collection that was actual on iterator creation time.
+
+When talking about lists, the following implementations are worth considering:
 - [ArrayList](#arrayList)
-- **CopyOnWriteArrayList**
 - [LinkedList](#linkedList)
+- **CopyOnWriteArrayList**
 
 
 ### [↑](#home) <a id="arrayList"></a> ArrayList
-**ArrayList** - это список на основе массива.
-Является одной из самых часто используемых реализаций, т.к. использование массива для хранения данных позволяет:
-- получать элемент за константное время. Выражено интерфейсом "**[RandomAccess](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/RandomAccess.html)**".
-- уменьшение накладных расходов при получении элементов из списка, т.к. массив расположен в памяти последовательно и нет необходимости перемещаться из одного места в heap в другое (что дорого)
+**ArrayList** is a list based on an array.\
+It is one of the most commonly used implementations, as using an array to store data allows for:
+- Retrieving an element in constant time. Expressed by the "**[RandomAccess](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/util/RandomAccess.html)**" interface.
+- Reduced overhead when retrieving elements from a list, as the array is stored sequentially in memory and there is no need to move from one location in the heap to another (which is expensive).
 
-ArrayList не потокобезопасный, однако это позволяет отказаться от лишних затрат на синхронизацию, т.к. в большинство случаев это не нужно. ArrayList пришёл на смену **java.util.Vector**, методы доступа к элементам которого синхронизированы.
+ArrayList is **NOT** thread-safe, but this eliminates unnecessary synchronization overhead, as it is not necessary in most cases.\
+ArrayList replaces **java.util.Vector**, whose element access methods are synchronized.
 
-Подробнее про ArrayList в статье **"[Структуры данных в картинках. ArrayList](https://habr.com/ru/post/128269/)"**.
+CopyOnWriteArrayList is a thread-safe analogue of ArrayList, in which a new copy of the array underlying the list is created for every change.\
+It's expensive, but thread-safe.\
 
-**CopyOnWriteArrayList** - потокобезопасный аналог **ArrayList**, в котором на любое изменение создаётся новая копия массива, на котором основан список. Дорого, зато потокобезопасно. Подробнее в материале от IBM: **"[Параллельные классы коллекций](https://www.ibm.com/developerworks/ru/library/j-jtp07233/index.html)"**.
+Some short videos:
+- [What is an ArrayList?](https://www.youtube.com/shorts/vJUDlDq82kE)
+- [How is Arrays.asList() working?](https://www.youtube.com/shorts/xBpNWchgSI0)
 
 
 ### [↑](#home) <a id="linkedList"></a> LinkedList
-**LinkedList** - это связанный список, в котором каждый элемент имеет ссылку на следующий элемент. Таким образом LinkedList - это цепочка из элементов.
+LinkedList is a linked list in which each element has a link to the next element.\
+Thus, a LinkedList is a chain of elements.
 
-В отличии от ArrayList, структура LinkedList представляет не случайный доступ, а последовательный (**"sequential access"**), что выражено наследованием от **java.util.AbstractSequentialList**. Таким образом, доступ к элементу по индексу происходит за линейное время, а не за константное время.
+Unlike ArrayList, the LinkedList structure does not provide random access, but rather sequential access, which is expressed by its inheritance from java.util.AbstractSequentialList.\
+Thus, accessing an element by index occurs in linear time, not constant time.
 
-Удаление элемента наоборот заключается лишь в перепривязке ссылок соседних элементов (предыдущего и следующего). Таким образом, в отличии от ArrayList, список LinkedList позволяет удалять элемент за константное время.
+Conversely, deleting an element simply involves rebinding the references of adjacent elements (previous and next).\
+Thus, unlike ArrayList, LinkedList allows deleting an element in constant time.
 
-Кроме того, LinkedList является ещё и двусторонней очередью.
+Furthermore, LinkedList is also a double-ended queue.
 
-Подробнее описано в статье **"[Что «под капотом» у LinkedList?](https://habr.com/ru/post/337558/)"** и в комментариях к ней.
+Fantastic video: **"[Choosing between ArrayList and LinkedList - JEP Cafe #20](https://www.youtube.com/watch?v=ul4wHrbJ8Fk)"**.
+
 
 ----
 
-## [↑](#home) <a id="set"></a> Set (множество)
-**Set (множество)** - это коллекции, которые не содержат дубликатов. Если говорить формально, то это коллекции, где нет такие элементов ``e1`` и ``e2``, для которых ``e1.equals(e2)`` вернёт true.
+## [↑](#home) <a id="set"></a> Set (set)
+**Set (set)** are collections that do not contain duplicates.\
+Formally, these are collections that do not have elements ``e1`` and ``e2`` for which ``e1.equals(e2)`` returns true.
 
-У интерфейса **Set** есть наследники, которые расширяют возможности Set.
+The **Set** interface has subinterfaces that extend the capabilities of Set.
 
-**Интерфейс java.util.SortedSet:** \
-Интерфейс SortedSet показывает, что данный Set обеспечивает упорядоченность элементов. А это в том числе означает, что элементы надо как-то сравнивать, чтобы их выстроить в порядке. Как сказано в JavaDoc, все элементы должны реализовывать интерфейс **Comparable** или их можно сравнить через компаратор, который был передан в конструктор **SortedSet**.
+**java.util.SortedSet:** interface
+The SortedSet interface indicates that this Set ensures the ordering of its elements.\
+This means, among other things, that the elements must be compared somehow to arrange them in order.\
+As stated in the JavaDoc, all elements must implement the **Comparable** interface or can be compared using the comparator passed to the **SortedSet** constructor.
 
-**SortedSet** определяет первый элемент (**first()**) как самый маленький, а последний элемент (**last()**), как самый большой. То есть элементы в SortedSet идут от меньшего к большему.
+**SortedSet** defines the first element (**first()**) as the smallest, and the last element (**last()**) as the largest.\
+That is, elements in a SortedSet are ordered from smallest to largest.
 
-Подобно спискам Set умеет возвращать представления части коллекции:
-- **headSet(E toElement)**, возвращающий часть Set'а, которая строго меньше переданного элемента
-- **tailSet(E fromElement)**, возвращающий часть Set'а, которая больше или равна переданному элементу
-- **subSet(E fromElement, E toElement)**, возвращающий представление, которое больше или равно элементу fromElement и которое строго меньше toElement
+Like lists, Set can return views of a portion of the collection:
+- **headSet(E toElement)**, which returns the portion of the Set that is strictly smaller than the passed element
+- **tailSet(E fromElement)**, which returns the portion of the Set that is greater than or equal to the passed element
+- **subSet(E fromElement, E toElement)**, which returns a view that is greater than or equal to the element fromElement and that is strictly smaller than the element toElement
 
+**java.util.NavigableSet Interface:**
+The NavigableSet interface adds some methods for navigating a Set collection. For example, the **pollFirst()** and **pollLast()** methods resemble a queue and return an element from the beginning/end of the Set collection, removing the element from the collection.\
+You can use **descendingIterator()** to get an iterator that goes from the end of a set to the beginning.\
+Similarly, you can use **descendingSet** to get a mirror representation of the current Set.
 
-**Интерфейс java.util.NavigableSet:** \
-Интерфейс NavigableSet добавляет некоторые методы для навигации по Set коллекции. Например, методы **pollFirst()** и **pollLast()** напоминают очередь и возвращают элемент с начала/конца Set коллекции, при этом удаляя элемент из коллекции. Есть возможность получить при помощи **descendingIterator()** итератор, который идёт из конца множества в начало. Аналогично, при помощи **descendingSet** можно получить представление текущего Set, которое является зеркальным представлением.
-
-Другие возможности:
+Other options:
 - **higher(E e)**
-Выбрать все значения, которые больше переданного, и получить наименьшее из них.
+Select all values ​​greater than the passed value and get the smallest one.
 - **lower(E e)**
-Выбрать все значения, которые меньше переданного, и получить наибольшее из них
+Select all values ​​less than the passed value and get the largest one.
 - **ceiling(E e)**/**floor(E e)**
-Похожи на higher/lower, но включают переданный элемент в диапазон поиска
+Similar to higher/lower, but include the passed element in the search range.
 
-Учитывая выше изложенное можно представить следующую схему:
+Considering the above, we can imagine the following scheme:
 
 ![](../img/collections/5_CollectionTree.png)
 
-В первую очередь, стоит приглядеться к EnumSet.
+It's interesting that usually Sets are wrappers on top of Maps.\
+See **"[José Paumard: How is a HashSet working?](https://www.youtube.com/watch?v=fpq4SQKLPDs)"**.\
+The same works for LinkedHashSets: **"[José Paumard: What is a LinkedHashSet?](https://www.youtube.com/watch?v=BCwHuOyaDGw)"**.
+
+First of all, it's worth taking a closer look at EnumSet.
 
 ### [↑](#home) <a id="enumSet"></a> EnumSet
 
-**EnumSet** - это множество для хранения enum значений. Операции основаны на побитовых операциях, что делает работу с данным множеством максимально эффективно.
+**EnumSet** is a set for storing enum values.\
+Operations are based on bitwise operators, making working with this set as efficient as possible.
 ```java
 enum Flags {
 	READ_ONLY, HIDDEN, LOCKED
@@ -236,116 +344,159 @@ public static void main(String[] args) {
 ```
 
 ### [↑](#home) <a id="сopyOnWriteArraySet"></a> CopyOnWriteArraySet
-Другой реализацией Set является **CopyOnWriteArraySet**.
-На самом деле, **CopyOnWriteArraySet** является своего рода обёрткой надо CopyOnWriteArrayList, цель которой - не допустить дубликаты и сделать возможным работу с List по контракту Set.
-Рекомендуется использовать только в случае небольших коллекцией без большого количества изменений, для которых требуется безопасный обход коллекции из нескольких потоков.
+Another implementation of Set is **CopyOnWriteArraySet**.
+In fact, **CopyOnWriteArraySet** is a kind of wrapper around CopyOnWriteArrayList, the purpose of which is to prevent duplicates and make it possible to work with Lists according to the Set contract.
+It is recommended to use it only for small collections without a large number of changes, which require safe traversal of the collection by multiple threads.
 
 ----
 
 ## [↑](#home) <a id="map"></a> Map
-**Map** - это тоже часть Java Collection Framework, хотя и не является наследником **java.util.Collection**. Согласно **"[Java Collections API Design FAQ](https://docs.oracle.com/javase/8/docs/technotes/guides/collections/designfaq.html)"** это связано с тем, что **Map** состоит из записей, каждая из которых представляет связку ключ-значение. Поэтому неочевидно, что считать элементом.
+**Map** is also part of the Java Collection Framework, although it is not a descendant of **java.util.Collection**.\
+According to **"[Java Collections API Design FAQ](https://docs.oracle.com/javase/8/docs/technotes/guides/collections/designfaq.html)"**, this is because **Map** consists of entries, each of which represents a key-value pair.\
+Therefore, it is not clear what constitutes an element.
 
-Поэтому карты позволяют получить три вида коллекций:
-- **entrySet()** : множество всех связок ключ-значение
-- **keySet()** : множество всех ключей (ключи уникальны)
-- **values()** : коллекция всех значений (значения не уникальны)
+The idea of **Map** is to define mapping.\
+See: **[José Paumard: What is a Map?](https://www.youtube.com/watch?v=u8ujMXUM90Q)**
 
-**Как выглядит иерархия интерфейсов и классов для Map?** \
-Если посмотреть на иерархию от Set, то станет понятно, что если слово Set заменить на Map, то мы получим иерархию для Map:
+
+Therefore, maps allow us to obtain three types of collections:
+- **entrySet()** : the set of all key-value mappings
+- **keySet()** : the set of all keys (keys are unique)
+- **values()** : a collection of all values ​​(values ​​are not unique)
+
+**What does the interface and class hierarchy for Map look like?**
+If we look at the hierarchy from Set, it becomes clear that if we replace the word Set with Map, we get the hierarchy for Map:
 
 ![](../img/collections/6_MapTree.png)
 
-И это не просто так. Реализации Set по умолчанию основаны на реализациях Map. Set в качестве ключей используют значения, а в качестве значений, которые ассоциируются с ключами, используют одно и то же константное значение-заглушку.
+And this is not without reason. The default implementations of Set are based on Map implementations.\
+Sets use values ​​as keys, and the values ​​associated with keys are all assigned the same constant placeholder value.
 
+In addition to the well-known implementations, there are also the following:
+- [What is an Identity HashMap?](https://www.youtube.com/watch?v=ptKwNH0BmMA): each separate instance is a different key
+- [What is a WeakHashMap?](https://www.youtube.com/watch?v=bZoUTUUzGu4): keys (i.e. entries) can be garbage collected.
 
-## [↑](#home) <a id="hashmap"></a> HashMap и LinkedHashMap
-**HashMap** - это коллекция, основанная на структуре данных, называемой "хэш таблица".
-Хэш таблица реализована при помощи массива из **Node**, которые хранят ключ и значение. Размер массива называется **CAPACITY** и по умолчанию равен 16. Эти ячейки ещё называют **корзинами**.
-Чтобы Node поместить в эту таблицу, на основе его hash вычисляется индекс в массиве. Логично, что индекс учитывает в том числе и размера массива (используя побитовое И):
+----
+
+## [↑](#home) <a id="hashmap"></a> HashMap and LinkedHashMap
+**HashMap** is a collection based on a data structure called a "hash table."\
+A hash table is implemented using an array of **Node**, which store a key and a value.\
+The array size is called **CAPACITY** and is 16 by default. These cells are also called **buckets**.\
+See **"[José Paumard: What is a bucket in a Map?](https://www.youtube.com/watch?v=1LzriAPWvXY)"**.
+
+To place a Node into this table, an index in the array is calculated based on its hash.\
+Logically, the index also takes into account the array size (using bitwise AND):
 ```java
 (n - 1) & hash
 ```
 
-Так же для HashMap используется некоторое значение **threshold** (порог), которое высчитывается перед каждой вставкой элемента.
+HashMap also uses a **threshold** value, which is calculated before each element is inserted.
 **threshold** = **capacity** * **load factor**.
 
-**Load Factor** - это показатель загруженности карты. По умолчанию он равен 0.75, т.е. когда карта заполнена на 75% происходит увеличение capacity карты в два раза (т.е. увеличивается массив, содержащий элементы).
-Т.к. индекс должен определяться с учётом размера массива, то при каждом изменении размера пересчитывается хэш для всех элементов и происходит их перераспределение.
+**Load Factor** is an indicator of the map's load.\
+By default, it is set to 0.75, meaning that when the map is 75% full, the map's capacity doubles (i.e., the array containing the elements increases).\
+Since the index must be determined based on the array size, each time the size changes, the hash for all elements is recalculated and they are redistributed.
 
-**Что такое коллизии?** \
-Иногда случается такое, что разные элементы попадают в одну и ту же корзину. В этом случае говорят, что произошла коллизия. После этого используется метод **equals** чтобы понять, вдруг это один и тот же элемент. Если элементы разные, то значения будут выстроены в связный список (как LinkedList).
+**What are collisions?**
+Sometimes, different elements end up in the same bucket.\
+In this case, a collision occurs. The **equals** method is then used to determine whether they are the same element.\
+If the elements are different, the values ​​will be arranged in a linked list (like a LinkedList).
 
-**Оптимизация при коллизиях:** \
-В случае, если цепочки становятся длиннее, чем предустановленное значение, то цепочка превращается в дерево. Таким образом доступ к элементам становится быстрее. Интересно, что при этом элементы в HashMap могут не реализовывать Comparable. При добавлении элементов будет использовать так называемый **tieBreakOrder**, который для расположения элементов будет использовать **identityHashCode**. Однако стоит при этом помнить, что tieBreakOrder не учитывается при поиске и если элементы не comparable, то поиск будет происходить перебором всех элементов. Подробнее можно прочитать тут: "[Tiebreaker Regarding Java HashMap, TreeNode and TieBreakOrder](https://yermilov.github.io/blog/2017/02/24/tiebreaker-regarding-java-hashmap-treenode-and-tiebreakorder/)" и тут "[IdentityHashCode in HashMap's bucket](https://stackoverflow.com/questions/53658426/identityhashcode-in-hashmaps-bucket/53659668)".
+**Collision optimization:**
+If chains become longer than the preset value, the chain is transformed into a tree.\
+This makes accessing elements faster.\
+Interestingly, elements in a HashMap may not implement Comparable.\
+When adding elements, it will use the so-called **tieBreakOrder**, which will use **identityHashCode** to arrange elements.\
+However, it is worth remembering that tieBreakOrder is not taken into account during search, and if the elements are not comparable, the search will occur by enumerating all elements.
 
-**LinkedHashMap** - это наследник HashMap, в котором обход коллекции соблюдает порядок, в отличии от обычной HashMap. Это достигается путём наличия двух ссылок, на начало и на конец коллекции, а так же путём добавления в каждый элемент коллекции (в каждый Entry) ссылок на следующий и предыдущий элемент. Интересной особенностью в том числе является тот факт, что порядок может быть как "в порядке вставки элемента", так и "в порядке последнего обращения к элементу" (данный порядок задаётся в конструкторе). Подробнее можно прочитать в материале **"[Internal Working of LinkedHashMap](https://www.dineshonjava.com/internal-working-of-linkedhashmap-in-java/)"**.
+**LinkedHashMap** is a HashMap descendant that maintains an orderly traversal of the collection, unlike a regular HashMap. This is achieved by having two references, one to the beginning and one to the end of the collection, and by adding references to the next and previous elements to each collection element (each Entry). An interesting feature is that the order can be either "insertion order" or "last access order" (this order is specified in the constructor). More details can be found in the article **"[Internal Working of LinkedHashMap](https://www.dineshonjava.com/internal-working-of-linkedhashmap-in-java/)"**.
 
-На основе LinkedHashMap можно даже сделать простейший LRU (Least recently used) кэш:
+You can even create a simple LRU (Least Recently Used) cache using LinkedHashMap:
 ```java
 final int size = 10;
 Map<Integer, Integer> set = new LinkedHashMap<>(size * 4/3, 0.75f, true) {
-    @Override
-    protected boolean removeEldestEntry(Map.Entry<Integer, Integer> eldest) {
-        return this.size() > size;
-    }
+	@Override
+	protected boolean removeEldestEntry(Map.Entry<Integer, Integer> eldest) {
+		return this.size() > size;
+	}
 };
 ```
 
-**ConcurrentHashMap** - это специальная версия HashMap для работы в многопоточном окружении. Корзины в этом случае уже сегменты. Каждый сегмент при изменении блокируется отдельно от других. Подробнее см. **"[Как работает ConcurrentHashMap](https://habr.com/ru/post/132884/)"**.
+**ConcurrentHashMap** is a special version of HashMap for working in a multithreaded environment.\
+In this case, the buckets are already segments. Each segment is locked separately from the others when modified.\
+For more information, see **[How ConcurrentHashMap Works Internally After Java 8?](https://javaconceptoftheday.com/how-concurrenthashmap-works-internally-after-java-8)**.
 
+**Hashtable** is an old approach to implement Hash Map.\
+Mutation methods are synchronized and lock the whole data structure. That's why it's mych slower than ConcurrentHashMap and should be avoided.\
+Also, short video: [José Paumard: What is a HashTable?](https://www.youtube.com/watch?v=TvLm8R45ziQ).
 
+----
 
 ## [↑](#home) <a id="treemap"></a> TreeMap
-**Что такое TreeMap?**
-**TreeMap** - это реализация **Map**, в которой элементы упорядоченны или при помощи **natural ordering** (т.е. элементы Comparable) или при помощи указания **Comparator'а**.
+**What is a TreeMap?**
+**TreeMap** is a **Map** implementation in which elements are ordered either by **natural ordering** (i.e., Comparable elements) or by specifying a **Comparator**.
 
-Как и следует из названия, TreeMap основан на дереве (**[Tree](https://youtu.be/lhTCSGRAlXI)**), а если быть точным, то на красно-чёрных деревьях (**[A Red-Black tree](https://youtu.be/nMExd4DthdA)**).
-Т.к. это красно-чёрное дерево, то каждый Entry имеет цвет (``boolean color = BLACK``), где BLACK - это константа, равная TRUE.
-Корень (root) красно-чёрного дерева всегда BLACK, а новые элементы всегда RED.
-Пустые Node всегда BLACK.
-Есть два ограничения:
-- Нельзя, чтобы два последовательных Node были RED
-- Путь от Root до Leaf состоит из одинакового числа BLACK элементов
+As the name suggests, TreeMap is based on a tree (**[Tree](https://youtu.be/lhTCSGRAlXI)**), or more precisely, on red-black trees (**[A Red-Black tree](https://youtu.be/nMExd4DthdA)**).\
+An excellent and high-quality analysis of this work can be found here: **"[Red Black Trees 2 Example of building a tree](https://youtu.be/v6eDztNiJwo)"**.
 
-Балансировка таких деревьев происходит по "aunt" элементу. Их два типа:
-- БАР : Black Aunt Rotate.
-Заканчивается BLACK parent и RED дочерними элементами
-- РАК : Red Aunt Colorflip
-Заканчивается RED parent и BLACK дочерними элементами
+The short introduction: **"[José Paumard: What is a red black tree?](https://www.youtube.com/watch?v=642xsKA1ZdA)"**.\
+Since Java 21 TreeMap implements **SequencedMap**: **"[José Paumard: What is a Sequenced Map?](https://www.youtube.com/watch?v=-rNpk1f1VY4)"**.
 
-Отличный и качественный разбор работы можно увидеть здесь: **"[Red Black Trees 2 Example of building a tree](https://youtu.be/v6eDztNiJwo)"**.
+TreeMap expects **Comparable** keys. If Keys are not comparable the **Comparator** should be passed to the TreeMap.\
+There is **NO** compile-time checks. The runtime check will be done.\
+The **java.lang.ClassCastException** is thrown when there is no comparator and keys are NOT comparable.
 
-Кроме того, интересен вопрос, как к null относятся HashMap и TreeMap. Об этом подробнее можно прочитать **"[Коллекции vs null](https://m.habr.com/ru/post/164027/)"**.
+By default, the **NullPointerException** is thrown when null is added as a key.\
+**BUT** the specific comparator can be passed to change this behavior:
+```java 
+TreeMap<String, String> map;
+map = new TreeMap<>(Comparator.nullsFirst(Comparator.naturalOrder()));
+map.put(null, "test");
+```
 
+HashMaps allow null key (because null is treated as a special hash value for the key) and null values are available.\
+ConcurrentHashMap **DOES NOT** allow null keys and null values!
+
+----
 
 ## [↑](#home) <a id="equalsHashcode"></a> Equals & Hashcode
-Как говорит спецификация **java.util.Collection** (т.е. JavaDoc):
+As the **java.util.Collection** specification (i.e., JavaDoc) states:
 > Many methods in Collections Framework interfaces are defined in terms of the equals method.
 
-Таким образом, equals - это один из методов, который должен работать правильно.
-Известно, что все объекты наследуются неявно от Object, а следовательно наследуют и поведение equals по умолчанию:
+Therefore, equals is one of the methods that must work correctly.
+It is known that all objects implicitly inherit from Object and therefore inherit the default equals behavior:
 ```java
 public boolean equals(Object obj) {
 	return (this == obj);
 }
 ```
-Таким образом, по умолчанию equals сравнивает по ссылке.
+Thus, by default, equals compares by reference.
 
-Кроме того, спецификация Collection говорит:
+Furthermore, the Collection specification states:
 > Implementations are free to implement optimizations whereby the equals invocation is avoided, for example, by first comparing the hash codes of the two elements.
 
-По умолчанию, hashcode - это native метод, поведение которого зависит от реализации в конкретной используемой JVM. Однако известно, что вернётся какое-то integer значение. На всё про всё 2^32 чисел. На всё многообразие возможных данных небольшой диапазон, а это значит, что для разных объектов хэшкоды могут совпасть, например:
+By default, hashcode is a native method whose behavior depends on the implementation in the specific JVM being used. However, it is known that some integer value will be returned. 2^32 integers in total. The range for the entire variety of possible data is small, meaning that hashcodes for different objects may be the same, for example:
 ```java
 public static void main(String []args){
 	System.out.println("Aa".hashCode());
 	System.out.println("BB".hashCode());
 }
 ```
-По этой причине, контракт hashcode нам говорит, что:
-- два объекта могут иметь одинаковый hashcode и быть не равны по equals
-- если объекты равны по equals, то их hashcode должны совпасть
-- hashcode не должен меняться от вызова к вызову
+For this reason, the hashcode contract dictates that:
+- two objects can have the same hashcode and not be equals-equals-equals
+- if objects are equals-equals-equals, their hashcodes must match
+- the hashcode must not change from call to call
 
-Последние два пункта продиктованы механизмами работы хэш таблиц, т.к. чтобы получить объект по ключу, нам надо этот ключ найти. Если учитывать, что мы равный объект, то если у равного объекта будет другой хэш, то искать мы его будет в не той корзине, что в итоге сломает поиск.
+The last two points are dictated by the mechanics of hash tables, since to retrieve an object by key, we need to find that key.\
+Considering that we are an equal object, if an equal object has a different hash, we will look for it in the wrong bucket, which will ultimately break the search.
 
-Кроме того, на этом контракте основаны механизмы и разных фрэймворков, которые в том числе используют коллекции в основе. Например, тот же Hibernate. Подробнее можно прочитать здесь: **"[Ultimate Guide to Implementing equals() and hashCode() with Hibernate](https://thorben-janssen.com/ultimate-guide-to-implementing-equals-and-hashcode-with-hibernate/)"**.
+Furthermore, this contract underlies the mechanisms of various frameworks, including those that use collections as their core.\
+For example, Hibernate. You can read more here: **"[Ultimate Guide to Implementing equals() and hashCode() with Hibernate](https://thorben-janssen.com/ultimate-guide-to-implementing-equals-and-hashcode-with-hibernate/)"**.
+
+The good video lecture: [José Paumard: Optimizing your equals() methods with Pattern Matching - JEP Cafe #21](https://www.youtube.com/watch?v=kuzjX_efuDs)
+
+Also, a short overview: 
+- [José Paumard: What is the hash code of an object?](https://www.youtube.com/watch?v=saa_wJZB7r8)
+- [José Paumard: What about equals() and hashCode()?](https://www.youtube.com/watch?v=RIynixWWkXk)
+
+----

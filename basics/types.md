@@ -1,173 +1,282 @@
 # [←](../README.md) <a id="home"></a> Data Types
 
 ## Table of Contents:
+- [Information storage](#storage)
 - [Primitive Types](#primitives)
+- [Widening and Narrowing transformations](#widening)
 - [Object Types](#objects)
-    - [Equals & HashCode](#equalsAndHash)
     - [Integer Pool](#integer)
-    - [Strings](#string)
+    - [String Pool](#string)
 - [Arrays](#arrays)
 - [Enums](#enum)
 
 ----
 
-## [↑](#home) <a id="primitives"></a> Primitive Types
-Java является строго типизированным языком программирования. Это значит, что каждая переменная обладает типом, каждое выражение имеет тип, и каждый тип строго определен. Одной из категорий типов данных в Java являются **"[Primitives Data Type](https://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html)"**.
+## [↑](#home) <a id="storage"></a> Information storage
+First, it's worth remembering that the unit of information is 1 bit.\
+One bit has a value of either zero or one.\
+Bits are combined into bytes, where 1 byte = 8 bits. This is just a historical fact:
 
-Основной примитивный тип данных - **int** (от слова integer, т.е. целочисленный).\
-Есть более длинные числа (**long**) и более короткие числа (**short**). Меньше них только **byte**.
+![](../img/basics/bit_byte.png)
 
-Прежде чем говорить про примитивы стоит вспомнить, что единицей информации является 1 бит, который имеет значение ноль или один. Биты объединяются в байты, где 1 байт = 8 бит. Так уж исторически сложилось. Есть разные варианты, почему именно 8. Но стоит отметить, что из-за двоичной системы кодирования в компьютерах наиболее выгодными для аппаратной реализации и удобными для обработки данных являются объёмы данных, кратные степеням двойки, в том числе и 1 байт = 8 бит. По этой причине минимальный объём информации, который имеет адрес в памяти, является байт.
+There are various explanations for the exact number 8.\
+But it's worth noting that, due to the binary encoding system in computers, 
+the most efficient data sizes for hardware implementation and processing are those that are multiples of two, including 1 byte = 8 bits.
 
-Максимальное число, которое можно выразить при помощи байта - 255:
+For this reason, the smallest amount of information that can be addressed in memory is a byte.\
+The maximum number that can be expressed using a byte is 255:
 
 ![](../img/basics/1_byte.png)
 
-Таким образом:
-- **byte** имеет значения от -2 в седьмой степени до 2 в седьмой степени минус 1 (из-за потери одного бита на знак числа). То есть от -128 до (128-1)
-- **short** больше байта в 2 раза, т.е. 8x2=16 бит. Таким образом диапазон от -2^15 до 2^15-1.
-- **int** больше short в 2 раза, т.е. 16x2=32. Таким образом диапазон от -2^31 до 2^31-1.
-- **long** больше int в 2 раза, т.е. 32x2=64. Таким образом диапазон от -2^63 до 2^63-1.
-
-Говоря про типы данных стоит помнить про преобразования расширения (**widening**) и сужения (**narrowing**).\
-Сужение типа происходит при касте более "вместительного" типа к менее "вместительному".\
-Расширение типа чуть сложнее. Java, выполняя операторы, такие как сложение, расширяет типы до наибольшего из используемых. Интересно, что типы byte и short расширяются до int, кроме случаев, если результат вычисления может быть известен на момент компиляции (статические переменные или литералы).
-
-Помимо целых чисел есть два типа для представления дробных чисел, они же числа с плавающей точкой: float (аналог int) и double (аналог long).\
-Однако, с ними есть важный нюанс:
+It's possible to convert number to binary presentation with simple java method:
 ```java
-public static void main(String[] args) {
-    System.out.println(0.3+0.6); // == 0.8999999999999999
+System.out.println(Integer.toBinaryString(100));
+```
+
+It is also worth remembering the following system:
+- 1 kilobyte is: 1024 bytes
+- 1 megabyte is: 1024 kilobytes
+- 1 gigabyte is: 1024 megabytes
+
+Why it can be useful? For example:
+```java
+public static void printUsedMemory() {
+	Runtime runtime = Runtime.getRuntime();
+	long allocatedForJvmFromOS = runtime.totalMemory();
+	long freeSpaceInAllocated = runtime.freeMemory();
+	long usedBytes = allocatedForJvmFromOS - freeSpaceInAllocated;
+	long usedMB = usedBytes / (1024 * 1024); // 1024 for kilobytes + 1024 for megabytes
+	System.out.println("Used memory: " + usedMB + " mb");
 }
 ```
-Проблема в том, как числа с плавающей точкой хранятся. Из-за этого при вычислениях появляется погрешность.\
-Чтобы избежать этого стоит использовать [BigDecimal](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/math/BigDecimal.html):
+It can be useful also to check memory with ``jstat -gc <pid>`` and ``jps``.
+
+
+## [↑](#home) <a id="primitives"></a> Primitive Types
+Java is a strongly typed programming language.\
+It means that every variable has a type, every expression has a type, and every type is strictly defined.\
+One category of data types in Java is **"[Primitive Data Type](https://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html)"**.
+
+The minimal data type is **byte** (8 bits).\
+The most significant bit is used as the sign bit: negative or positive.\
+So, we lose one digit. That's why we're left with only 128 options.\
+Zero can't be negative, so we have a range ``[-128; 127]`` or ``-2^7 to 2^7-1``.\
+Positive part of the range uses one option for zero, that's why we have 127 and not 128.
+
+Each subsequent type is 2 times larger:
+| Type      | Bits    | Range           | Values                  |
+| --------- | ------- | --------------- | ----------------------- |
+| **byte**  | 8       | -2^7 to 2^7-1   | -128 .. 127             |
+| **short** | 8x2=16  | -2^15 до 2^15-1 | About 32 thousand       |
+| **int**   | 16x2=32 | -2^31 до 2^31-1 | About two billion       |
+| **long**  | 32x2=64 | -2^63 до 2^63-1 | About 9 billion billion |
+
+It has values ​​from -2 to the seventh power to 2 to the seventh power minus 1 (due to the loss of one bit per sign of the number).
+
+In addition to integers, there are two types for representing fractional numbers, also known as floating-point numbers: 
+- float (similar to int), 32 bits or 4 bytes
+- double (similar to long), 64 bits or 8 bytes
+```java
+System.out.println(Integer.BYTES + " like " + Float.BYTES);
+System.out.println(Long.BYTES + " like " + Double.BYTES);
+```
+
+They have an interesting approach to store information:
+
+![](../img/basics/bit_float.png)
+
+This means that numbers are stored with some precision error\inaccuracy. It leads to interesting results:
+```java
+System.out.println((0.1F + 0.2F) == 0.3F); //true (floats)
+System.out.println((0.1 + 0.2) == 0.3);    //false (doubles)
+```
+As we can see, Java uses doubles by default.
+
+doubles have greater precision, which leads to greater error\inaccuracy:
+```java
+System.out.println(0.3+0.6); // == 0.8999999999999999
+```
+
+To avoid such issues, use **[BigDecimal](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/math/BigDecimal.html)**:
 ```java
 BigDecimal.valueOf(0.3).add(BigDecimal.valueOf(0.6)).floatValue());
 ```
 
-Кроме того, в Java есть логический тип **boolean**, который принимает значения true или false.\
-Особенность данного типа данных в том, что занимаемый объём памяти зависит от реализации JVM. Например, boolean может занимать столько же, сколько и int, хотя при этом boolean по сути представляет либо 1, либо 0. По этой причине рекомендуют использовать [BitSet](https://www.baeldung.com/java-bitset) при использовании коллекции boolean значений.
+Additionally, Java has a **boolean** type, which accepts the values ​​true or false.\
+A unique feature of this data type is that its memory footprint depends on the JVM implementation.\
+For example, a boolean can occupy the same amount of memory as an int, even though a Boolean essentially represents either 1 or 0.\
+For this reason, it is recommended to use a **[BitSet](https://www.baeldung.com/java-bitset)** when using a collection of Boolean values.
 
-К boolean типам применимы логические операторы, такие как & и |, а так же их короткие формы && и ||.\
-boolean выражения проверяются на истинность (на true). Следовательно, в выражении a && b часть b не будет выполнена, если a будет false. А в выражении a || b часть b не будет выполнена, если часть a будет true. Кроме того, boolean типы могут быть использованы в [тернарных операторах](https://docs.oracle.com/javase/tutorial/java/nutsandbolts/op2.html).
+Boolean types support logical operators such as ``&`` and ``|``, as well as their **short forms** ``&&`` and ``||``.\
+Boolean expressions are evaluated for truthiness (true).\
+Therefore, in the expression ``a && b``, the b part will not be executed if a is false.\
+And in the expression ``a || b``, the b part will not be executed if a is true.\
+Additionally, boolean types can be used in ternary operators.
 
-И последний восьмой (прямо как битов) примитивный тип - **char**. В Java для char используется кодировка Unicode (UTF-16) и для хранения Unicode-символов используется 16 бит или 2 байта. Диапазон допустимых значений - от 0 до 65536 (отрицательных значений не существует). То есть char - это как short, только без отрицательных значений. Кроме того, хоть char и представлен числом, но обрабатывается иначе. Например, данный код отобразит символ, а не его числовое значение:
+And the final, eighth (just like bits) primitive type is **char**.\
+In Java, char uses the **Unicode encoding (UTF-16)**, and **16 bits, or 2 bytes**, are used to store Unicode characters.\
+The range of valid values ​​is from 0 to 65536 (there are no negative values).\
+So, char is like short, only without negative values.
+
+Furthermore, although char is represented as a number, it is processed differently.\
+For example, this code will display the character, not its numeric value:
 ```java
 public static void main(String[] args) {
-    char f = 9885;
-    System.out.println(f);
+	char f = 9885;
+	System.out.println(f);
 }
 ```
 
+----
+
+## [↑](#home) <a id="widening"></a> Widening and Narrowing transformations
+When talking about data types, it's important to remember about the **widening** and **narrowing** transformations.
+
+**Narrowing** occurs when casting a more capacious type to a less capacious one:
+```java
+double d = 10.7;
+int i = (int) d;   // 10 (the fractional part is discarded)
+```
+
+But there may be problems with overflow, when the data "does not fit" into the specified type:
+```java
+int x = 130;
+byte b = (byte) x; // overflow: the result will be -126
+```
+
+**Widening** is a bit more complicated.\
+When executing operators such as addition, Java widens types to the largest usable type:
+```java
+int myInteger = 100;
+double myDouble = myInteger;  // because int type smaller than double (double int)
+byte myByte = 10;
+int byAsInt = myByte;     // byte can fit into int without issues
+```
+
+Interestingly, the byte and short types widen to int, except in cases where the result of the calculation can be known at compile time (static variables or literals).
+```java
+byte a = 10;
+byte b = 20;
+byte c = a + b; // ❌ Compilation error!
+```
+
+but:
+```java
+byte x = 10 + 20; // Works fine
+```
+because it will be calculated at compile time from literals.
+
+----
 
 ## [↑](#home) <a id="objects"></a> Object Types
-Кроме примитивных типов есть другая категория типов: **[Objects](https://docs.oracle.com/javase/tutorial/java/concepts/object.html)**.
+In addition to primitive types, there is another category of types: **[Objects](https://docs.oracle.com/javase/tutorial/java/concepts/object.html)**.
 
-Объектные типы определяются их классом.\
-Объекты могут быть созданы при помощи ключевого слова **new** или при помощи **"[Java Reflection API](https://docs.oracle.com/javase/tutorial/reflect/member/ctorInstance.html)"**.
+Object types are defined by their class.
+Objects can be created using the **new** keyword or using the **[Java Reflection API](https://docs.oracle.com/javase/tutorial/reflect/member/ctorInstance.html)**.
 
-Каждый объект имеет свой заголовок (header). Заголовок состоит из **mark word** и **klass word**.
+Each object has its own header.\
+The header consists of:
+- **class word** (class pointer, a reference to class metadata) - 4 bytes (compressed) or 8 bytes (without compression) 
+- **mark word**  (gc information, hashcode and monitor metadata) - 8 bytes
 
-Кроме этого, у каждого класса есть особые методы - **конструкторы**. Конструкторы вызываются при создании экземпляра класса. Какой конструктор вызвать зависит от того, какие параметры будут переданы при создании экземпляра.
+So, they can be compared with integers (32 bits, 4 bytes) and with long (64 bits, 8 bytes).
 
-Если конструкторы не определены, тогда при компиляции будет добавлен конструктор по умолчанию (default constructor). Конструктор по умолчанию не имеет параметров. Если же конструкторы определены, то default конструктор больше не будет добавлен.
+Every class in Java implicitly inherits from **java.lang.Object**.\
+This means that all object types share some common behavior and mechanisms.
 
-Каждый класс в Java неявным образом наследуется от **java.lang.Object**. Это означает, что все объектные типы имеют некоторое общее поведение.\
-К общему поведению можно отнести реализацию контрактра **equals and hashcode**, формирование текстового представления через **toString**, а так же клонирование объекта при помощи **clone**.
-
-
-### [↑](#home) <a id="equalsAndHash"></a> Equals & HashCode
-По умолчанию, метод **Equals**, сравнивающий два объекта, реализован через сравнение ссылок:
-```java 
-public boolean equals(Object obj) {
-    return (this == obj);
-}
-```
-
-Рекомендуется переопределять метод с учётом ключевых для сравнения полей. Например:
+Primitives can be put into objects like in a box.\
+It's called boxing / unboxing:
 ```java
-@Override
-public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    if (!super.equals(o)) return false;
-    Clazz t2 = (Clazz) o;
-    return name.equals(t2.name);
-}
+Integer box = 1;
+box = Integer.valueOf(1);
+int unboxed = box; 
 ```
+Do not forget that box stores primitive inside + class word + mark word.\
+So it means that every boxing adds overhead.
 
-Метод Equals является частью контракта между Equals и HashCode. Поэтому их рекомендуют переопределять одновременно.
+Each class has special methods - **constructors**.\
+Constructors are called when creating an instance of the class.\
+Which constructor is called depends on the parameters passed when creating the instance.
 
-Метод **hashCode** возвращает хэш-код (т.е. числовое представление) объекта, ограниченное размером **int**. По умолчанию метод hashCode реализован на стороне виртуальной машины, поэтому вычисление является JVM специфичным. Однако, если метод переопределён, то за вычисление hashCode отвечает разработчик. Это значит, что он должен следовать следующим правилам:
-- hashCode для одного и того же объекта должен возвращать одинаковое значение
-- Если объекты равны через equals, то должны быть равны и их hashCode.
-- Если у объектов равны hashCode, то их equals не обязательно должны быть равны
+If no constructors are defined, a default constructor will be added during compilation.\
+The default constructor has no parameters. If constructors are defined, the default constructor will no longer be added.
 
-Даже если у объекта переопределён hashCode можно до сих пор получить его оригинальный hashCode при помощи метода **System.identityHashCode**.
+But for Object versions of primitives the **valueOf** should be used because this method provides caching with pools.
+
+Shared behavior includes the implementation of the equals and hashcode contract, generating a text representation using toString, and cloning an object using clone.
 
 
 ### [↑](#home) <a id="integer"></a> Integer Pools
-При написании кода самыми часто используемыми типами являются строки (класс String) и целые числа (класс Integer).\
-В Java для этих типов предусмотрено особое поведение.
+When writing code, the most commonly used types are strings (the String class) and integers (the Integer class).\
+Java provides special behavior for these types.
 
-Тип Integer содержит внутри себя **IntegerCache**, который согласно требованиям JLS (Java Language Specification) содержит числа от -128 to 127. Верхняя граница может быть изменена при помощи ключа JVM. Вот почему сравнение по ссылке использовать опасно:
+The Integer type contains an **IntegerCache**, which, according to the JLS (Java Language Specification), contains numbers from -128 to 127.\
+The upper bound can be changed using a JVM switch. This is why comparison by reference is dangerous:
 ```java
 public static void main(String[] args) {
-    Integer a = 127;
-    Integer b = 127;
-    // Если 127 изменить на 128, то будет false
-    System.out.println(a == b);
+	Integer a = 127;
+	Integer b = 127;
+	// If 127 is changed to 128, it will be false
+	System.out.println(a == b);
 }
 ```
 
+### [↑](#home) <a id="string"></a> String Pool
+Similar to the approach with Integers, strings in Java are stored in the so-called **String Pool**.
 
-### [↑](#home) <a id="string"></a> Strings
-Аналогично подходу с Integer'ами, строки в Java хранятся в так называемом **String Pool**.
+The String Pool contains strings declared using literals.\
+If you need to add a string to the string pool, you must use the **String#intern** method.
 
-В String Pool попадают те строки, которые объявленны при помощи литералов. Если необходимо строку добавить в пул строк, то необходимо использовать метод **String#intern**.
+Furthermore, a String is an immutable object (**Immutable Object**) that stores its contents in a **char** array.\
+Any modification, such as concatenation, results in the creation of a new object.\
+For this reason, a created string cannot be cleared until the JVM decides to delete it from memory.
 
-Кроме того, String - это неизменяемый объект (**Immutable Object**), который хранит своё содержимое в массиве типа **char**. Любое изменение, такое как конкатенация, приводит к созданию нового объекта. По этой причине созданную строку нельзя очистить до того, как JVM решит удалить её из памяти.
+Interestingly, it is sometimes recommended to use **char** arrays instead of strings for storing passwords.\
+However, this is based on the JDBC API, which currently uses Strings to transmit passwords, meaning most of the security arguments are exaggerated.
 
-Интересно, что иногда советуют использовать массивы **char**, вместо string, для хранения паролей. Однако, в основе всего лижет JDBC API, который на текущий момент времени использует String для передачи пароля, а значит большая часть доводов про безопасность преувеличена.
+String concatenation is performed using the "+" operator. Under the hood, concatenation is performed using **StringBuilder**.\
+Starting with JDK 9, concatenation is performed by calling **StringConcatFactory**, which, with some optimizations, still requires the creation and use of **StringBuilder**, which leads to increased overhead when concatenating in a loop.
 
-Конкатенация же строк выполняется через оператор "+". Конкатенация "под капотом" выполняется при помощи **StringBuilder**'а.\
-Начиная с JDK 9 конкатенация выполняется через вызов **StringConcatFactory**, которая с некоторыми оптимизациями всё равно задействует создании и использование **StringBuilder**, что при конкатенации в цикле приводит к повышенным накладным расходам.
+Furthermore, **StringBuffer** is used, which was originally created for simple thread safety, as the string modification methods are synchronized.\
+However, this approach has a performance impact.
 
-Кроме того, используется **StringBuffer**, который когда-то был создан для простой потокобезопасности, т.к. методы изменения строки синхронизированы. Однако, такой подход сказывается на производительности.
-
+----
 
 ## [↑](#home) <a id="arrays"></a> Arrays
-Массивы - особый объектный тип в Java. Например:
+Arrays are a special object type in Java.\
+For example:
 ```java
 int[] test = new int[] {2, 3, 4};
 test.toString();
 ```
 
-У каждого массива есть поле **length**, из которого можно получить его длину:
+Every array has a **length** field, from which you can get its length:
 ```java
 System.out.println(new int[] {2, 3, 4}.length);
 ```
 
-Массивы в Java могут быть многомерными:
+Arrays in Java can be multidimensional:
 ```java
 int[][] test = new int[1][];
 test[0] = new int[5];
 System.out.println(test[0][1]);
 ```
-По своей сути многомерный массив - это просто одномерные массивы, состоящие из других одномерных массивов. Именно по этой причине требуется указание лишь одного размера (см. пример выше).
+At its core, a multidimensional array is simply one-dimensional arrays composed of other one-dimensional arrays. This is why only one dimension is required (see the example above).
 
+----
 
 ## [↑](#home) <a id="enum"></a> Enum
-Кроме того, в Java есть интересный тип - Enum, который представляет коллекцию значений. Например:
+Furthermore, Java has an interesting type, Enum, which represents a collection of values. For example:
 ```java
 public enum MyEnum {
-    OPTION1, OPTION2
+	OPTION1, OPTION2
 }
 ```
 
-При компиляции данный код станет таким:
+When compiled, this code becomes:
 ```java
 public final class MyEnum extends java.lang.Enum<MyEnum> {
 ```
-Внутри будет инициализирован массив экземпляров MyEnum (OPTION1 и OPTION2 - это экземпляры MyEnum). Именно поэтому нам доступен поиск по индексу в массиве (через метод ``values()``) или через имя (метод ``valueOf(String name)``).
+Internally, an array of MyEnum instances will be initialized (OPTION1 and OPTION2 are MyEnum instances). This is why we can search the array by index (using the ``values()`` method) or by name (using the ``valueOf(String name)`` method).
+
+----

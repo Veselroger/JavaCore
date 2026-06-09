@@ -6,6 +6,10 @@
     - [Garbage Collection](./jvm/gc.md)
 - Basics
     - [Data Types](./basics/types.md)
+	- [Equals and Hashcode](./basics/hashcode.md)
+	- [Access modifiers](./basics/modifiers.md)
+	- [Inheritance](./basics/inheritance.md)
+	- [Immutability](./basics/immutable.md)
     - [OOP](./basics/oop.md)
 - Core
     - [Exceptions](./core/exceptions.md)

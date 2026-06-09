@@ -2,199 +2,386 @@
 
 ## Table of Content:
 - [Java Memory](#memory)
+- [Java object references](#ref)
+- [java.lang.ref.Reference](#langref)
 - [Garbage collections](#garbage)
 - [Serial And Parallel GC](#serialgc)
-- [Concurrent Mark Sweep](#cms)
 - [G1 Garbage Collector](#g1)
-- [java.lang.ref.Reference](#ref)
-- [Resources](#resources)
+- [Finalize](#finalize)
+- [JVM monitoring](#monitoring)
 
 ---------
 
 ## [↑](#home) <a id="memory"></a> Java Memory
-Рассматривая сборку мусора в Java стоит вспомнить про утройство памяти в Java (Java Memory Model).
+When considering garbage collection in Java, it's worth remembering the structure of Java memory.
 
-Самый шикарный MUST SEE доклад на тему памяти: **"[Андрей Паньгин — Память Java процесса по полочкам](https://www.youtube.com/watch?v=kKigibHrV5I)"**.
+In general, the whole JVM memory can be divided into several parts:
+- Stack
+- Heap
+- Off-Heap
 
-**Heap** (она же "Куча") - основная область памяти в JVM, в которой хранятся создаваемые Java объекты. Чтобы создать объект нужно об этом объекте иметь информация: какого он типа, возможно он статический и т.п. Такая метаинформация хранится в области **Metaspace**.
+In terms of garbage collection mechanism there can be defined:
+- **GC managed spaces**\
+Heap (to store instances), Metaspace (to store classes and metadata, it was PermGen before Java 8)
+- **Native Memory**\
+ByteBuffers, NIO, JNI
+- **Other**\
+Codecache (JIT compiled code), Internal JVM allocations (thread stacks, loaded libraries, memory for GC
 
+For more information: **"[Mastering JVM Memory Troubleshooting - From OutOfMemoryErrors to Leaks](https://www.youtube.com/watch?v=kwFP-zCLV2M)"**
 
-**Metaspace** - это область памяти JVM, которая хранит метаинформацию или метаданные: загруженные классы, байт-код методов, статические поля и методы. До Java версии 8 эта область памяти называлась **PermGen** (**Permanent Generation**, "постоянное поколение"). Основное отличие Metaspace от PermGen в том, что размер Metaspace динамически изменяется, в завимисоти от потребности. Кроме того, может быть особая область, называемая **"[Compressed Class Space](https://stuefe.de/posts/metaspace/what-is-compressed-class-space/)"**. Так же немного деталей есть в пункте "Ограничиваем потребление памяти: heap, non-heap, direct memory" в докладе **"[Как мы учились эксплуатировать Java в Docker](https://habr.com/ru/company/hh/blog/450954/#lim-mem-1)"**.
+The [Heap memory](https://www.youtube.com/watch?v=BcVKKXx8KT0) the most interisting one because it's used to store objects.\
+The heap memory is splitted (logically) by generations: **Young Generation** and **Old Generation** (**tenured**, i.e. permanent).\
+**Young Generation** consists (logically) of: **Eden** (new objects) and **Survivor** (survived garbage collection).
 
-Стоит помнит, что JVM при запуске загружает некоторый набор "базовых" (т.е. системых) классов, без которых Java код не сможет работать. Ранее данные классы хранились в файле **rt.jar**, но начиная с java 9 базовые классы размещены в каталоге lib, а **rj.jar** удалён. Подробнее описано в **"[Migrating From JDK 8 to Later JDK Releases](https://docs.oracle.com/en/java/javase/14/migrate/index.html#JSMIG-GUID-2C896CA8-927C-4381-A737-B1D81D964B7B)"**.
+A few words about the [Off-heap memory](https://www.youtube.com/watch?v=sJlXbQvgU-4).\
+The **[Bytebuffer API](https://www.youtube.com/watch?v=NKPNxhatAVk)** (old) or Memory API (preferrable) to get an access to it.
 
+Modern Memory API uses [Memory Segments](https://www.youtube.com/watch?v=u3PTqVdijvg) and [Arenas](https://www.youtube.com/watch?v=sHu3sv5dj3k).\
+For more information please check: **"[Memory API - JEP Cafe #25](https://www.youtube.com/watch?v=lVORyDhQzf8)"**.
 
-**Stack** - область памяти, в которой выделяется место под стэки для потоков, а так же хранятся локальные переменные и легковесные мониторы. Подробнее про всё это можно прочитать в статье **"[Stack Overflow handling in HotSpot JVM](https://pangin.pro/posts/stack-overflow-handling)"**.
+A few words about the **Metaspace**:\
+Metaspace is an area of ​​JVM memory that stores metainformation or metadata: loaded classes, method bytecode, static fields, and methods.\
+Before Java 8, this memory area was called PermGen (Permanent Generation).\
+The main difference between Metaspace and PermGen is that Metaspace's size dynamically changes based on demand.\
+Additionally, there may be a special area called "Compressed Class Space".
 
+**Stack memory:**\
+Stack is the memory area that allocates space for thread stacks, and also stores local variables and lightweight monitors.\
+You can read more about this in the article: **"[Stack Overflow Handling in HotSpot JVM](https://pangin.pro/posts/stack-overflow-handling)"**.
 
-**Codecache** - область памяти JVM, которая содержит код, который был скомпилирован JIT компилятором (так называемые **hot spots**). Подробнее можно прочитать здесь: **"[15 Codecache Tuning](https://docs.oracle.com/javase/8/embedded/develop-apps-platforms/codecache.htm)"**. Иногда можно встретить информацию о том, что codecache - это часть Metaspace, но это неправда. Подтверждением того могут служить обучайющие слайды на сайте Oracle (**[HotSpot JVM Memory Management](https://www.oracle.com/webfolder/technetwork/tutorials/mooc/JVM_Troubleshooting/week1/lesson1.pdf)**) или раздел "Active Memory pools" в официальной утилите "Java Mission Control".
+**Codecache:**\
+Codecache is an area of ​​JVM memory that contains code compiled by the JIT compiler (so-called hot spots).\
+You can read more here: **"[15 Codecache Tuning](https://docs.oracle.com/javase/8/embedded/develop-apps-platforms/codecache.htm)"**.\
+You may sometimes find information that codecache is part of Metaspace, but this is not true.\
+This is confirmed by the training slides on the Oracle website: **"[HotSpot JVM Memory Management](https://www.oracle.com/webfolder/technetwork/tutorials/mooc/JVM_Troubleshooting/week1/lesson1.pdf)"**.
+Also, the "Active Memory Pools" section in the official Java Mission Control utility can be used.
 
+There are also other areas, such as Symbols or Internal/Other. Symbols contain method signatures, variable names, and strings (the very same **"[string pool](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/lang/String.html#intern())"**). Internal allocates memory for the JVM and for **[Direct Byte Buffer](https://www.youtube.com/watch?v=0y6_RDga-fk)** memory.
 
-Есть ещё и другие области, например **Symbols** или **Internal/Other**. В Symbols лежат сигнатуры методов, названия переменных, строки (тот самый **"[пул строк](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/lang/String.html#intern())"**). В Internal выделяется память под потребности JVM и для **[Direct Byte Buffer](https://www.youtube.com/watch?v=0y6_RDga-fk)**'ов.
-
-Garbage Collector в основном работает с областью памяти **Heap**, но GC иногда может "собирать мусор" и вне Heap. Более подробно можно прочитать тут:
-- **[How Java GC Does Direct Byte Buffer Clean Up](https://stackoverflow.com/questions/40122063/how-java-gc-does-direct-byte-buffer-clean-up-because-ibm-docs-says-it-does)**
-- **[DirectByteBuffer из Java NIO](https://russianblogs.com/article/2477490991/)**
+The Garbage Collector primarily works with the **Heap** memory area, but the GC can sometimes "collect garbage" outside the Heap.\
+For example: **[How Java GC Does Direct Byte Buffer Clean Up](https://stackoverflow.com/questions/40122063/how-java-gc-does-direct-byte-buffer-clean-up-because-ibm-docs-says-it-does)**.
 
 ---------
 
+## [↑](#home) <a id="ref"></a> Java object references
+To understand how Garbage collection works we need to understand object references.
+
+For example:
+```java
+MyClass obj = new MyClass();
+```
+The MyClass instance is stored in the Heap memory.\
+But ``obj`` is a reference can be stored in different places.
+
+If obj is local variable - it's stored in the stack.\
+If obj is object field - it's stored in the heap.\
+It obj is static field - it's stored in the metaspace.
+
+References also require some space.\
+It depends on different aspect, but in general:
+- require 4 bytes (32 bits, like integer) when Compressed Oops are enabled
+- require 8 bytes (64 bits, like long) when Compressed Oops are disabled (or if heap is too big)
+
+Compressed Oops use 32-bit reference, which can express **ONLY** ~4 billion values.\
+Objects are aligned in memory, typically 8 bytes.\
+It means that we can address only (4 billion block indexes * 8 bytes), i.e. ``2^32 x 8 = 2^35``.\
+``2^30 bytes = 1 GiB``, it means that ``2^35=2^5×2^30=32 GiB``.\
+When Heap is **MORE** than 32gb (i.e. more than -Xmx32g) the **Compressed Oops** are disabled.
+
+Also, when we are talking about the immutable object in Java we should remember about references.\
+For example:
+```java 
+BigDecimal data = new BigDecimal("0.1");
+data = data.add(new BigDecimal("0.2"));
+System.out.println(data);
+```
+In that case two objects ``data`` reference changed from one big decimal instance to the result of the method ``add``.\
+It means that two big decimal objects will be unreacheble by references and will be garbage collected.
+
+float primitives in that case are just values.\
+They can be mutated and will be garbage collected ONLY with the owner (i.e. with the object instance), i.e. when owner will not be reachable by references.
+
+Also, we should be careful when objects copies are created.\
+If references are copied and not values (not the deep copy) some "garbage" can be still accessible and consume memory OR can be mutated from unexpected place.\
+Deep copy should copy **NOT** references, **BUT** values.
+
+We should also remember about the **Variable shadowing** when we are talking about references.\
+For example:
+```java 
+class A {
+    Object field;
+
+    void f(Object x) {
+        Object field = x; // variable shadowing!
+		// this.field is empty. Field is living ONLY whyle method stack frame is alive!
+		// x will be garbage collected when method is be finished!
+    }
+}
+```
+
+How Garbage collection analyzes references?\
+Garbage collectors use entry points that are called **GC Roots**.
+
+**GC Roots** are the root elements of the graph from which live objects are searched.\
+Looking at the material **[Garbage Collection in Java](https://www.w3resource.com/java-tutorial/garbage-collection-in-java.php)**, you can see that these elements include:
+- active threads (JVM has an access to them)
+- local variables (in that active threads stacks) 
+- static variables (in the loaded classes metadata)
+- JNI references (i.e., references **FROM** callable native code)
+
+----
+
+## [↑](#home) <a id="langref"></a> java.lang.ref.Reference
+Java has a special abstract class that represents a reference to an object.\
+Implementations of this class are treated specially by garbage collectors.\
+Each implementation describes a different level of reference "strength".\
+This strength affects the circumstances under which the referenced object will be garbage collected.
+
+It's worth remembering that simply assigning a reference to an object is a "strong" reference.\
+This means that as long as the reference exists, the object will not be garbage collected. This is the strictest obligation.
+
+The opposite of "strong references" is "weak references" (**Weak Reference**).
+**Weak Reference** is a reference that does not prevent the object from being collected by the GC.\
+An example of its use is **WeakHashMap**, where values ​​are removed from the map when the keys are no longer used (with the caveat that the values ​​must not hold the keys).
+
+Between **Strong** and **Weak** stands **Soft**.\
+**Soft Reference**, or "soft references," are collected only when memory becomes scarce.\
+If memory is sufficient and the objects are no longer in use, they remain alive.
+
+And the most unusual Reference is **PhantomReference**.\
+**PhantomReference** are phantom references.\
+These references are unusual in that they always return null instead of an object and are primarily used to track object collection, as phantom references are added to the ReferenceQueue when objects are collected (which is why they always return null).
+
+For example:
+```java
+ReferenceQueue<Object> queue = new ReferenceQueue<>();
+Object obj = new Object();
+PhantomReference<Object> ref =
+    new PhantomReference<>(obj, queue);
+```
+reference will be added to the queue by JVM when object is garbage collected.\
+PhantomReference can't be used to get object. So we can create own phantom reference with additional data.
+
+Instead of using phantom references, starting with Java 9 it became possible to use a special **[Cleaner](https://www.logicbig.com/tutorials/core-java-tutorial/gc/ref-cleaner.html)**.
+
+----
+
 ## [↑](#home) <a id="garbage"></a> Garbage collection
-Сборка мусора в Java опирается на **[слабую гипотезу о поколениях](https://youtu.be/ZYiQCHxgABI?t=2574)**.
+Garbage collection in Java relies on the **"Weak Generational Hypothesis"**.\
+The hypothesis states: "Most objects survive for only a short period of time".\
+A prime example of this is autoboxing.
 
-**Cлабая гипотеза о поколениях** говорит о том, что большинство создаваемых объектов не живут долго и умирают молодыми. Ярким примером того может служить [Autoboxing](https://docs.oracle.com/javase/tutorial/java/data/autoboxing.html). 
+Based on this hypothesis, objects are divided into generations based on their lifetime (i.e. Heap Layout structure):
+- Young Generation
+- Old Generation
 
-На основе этой гипотезы объекты по времени жизни делят на **поколения**: **Young Generation** и **Old Generation**.\
-Разделение на поколение позволяет и сборку мусора разделить на малые сборки (**minor GC**) и на полные сборки (**full GC**). Малые сборки обрабатывают только молодые объекты, что позволяет сократить количество рассматриваемых объектов при очистке памяти.
+This generational division allows garbage collection to be divided into minor GCs and full GCs.\
+Minor GCs process only young objects, reducing the number of objects considered during garbage collection.
 
-Для обеспечения работы алгоритмов сборки мусора пространство в Heap разделяется на области (как минимум логически). 
+To ensure the operation of garbage collection algorithms, the heap space is divided into regions (at least logically).
 
-Молодое поколение (Young Generation) делится на следующие области:
-- **Eden** (Эдем): здесь живут вновь созданные объекты
-- **Survivor**: здесь живут объекты, которые пережили некоторое количество сборок
+The Young Generation is divided into the following regions:
+- **Eden**: newly created objects live here
+- **Survivor**: objects that have survived a certain number of builds live here
 
-**Eden** - область, в которой попадают объекты при создании. Так как создание объектов может выполняться из нескольких потоков, то чтобы снизить необходимость в синхронизации используются **[TLAB](https://dzone.com/articles/thread-local-allocation-buffers)**. Каждому потоку выдаётся свой собственный участок в Eden.
+**Eden** is the region where objects are created.\
+Since object creation can be performed by multiple threads, **[TLAB](https://dzone.com/articles/thread-local-allocation-buffers)** are used to reduce the need for synchronization.\
+Each thread is assigned its own region in Eden.
 
-**Survivor** - области (их несколько), между которыми перемещаются молодые объекты между minor сборками. Это позволяет одни survivor участки наполнять выживышими объектами, а другие очищать от неиспользуемых объектов. Кроме того, это позволяет считать кол-во пережитых сборок и определять, когда объект станет долгоживущим.
+**Survivor** are regions (there are several) between which young objects move between minor builds.\
+This allows some survivor regions to be filled with surviving objects, while others are cleared of unused objects.\
+It also allows the number of builds it has survived to be counted and determines when an object becomes long-lived.
 
-Старшее поколение (Old Generation) размещается в Tenured области.
-**Tenured** - область, в которую попадают долгоживующие объекты. Эти объекты больше не участвуют в minor сборках.
+The Old Generation is located in the Tenured region.\
+Tenured is the area where long-lived objects are stored.\
+These objects are no longer included in minor collections.
 
-Для выполнения сборки мусора JVM останавливает все потоки выполнения программы. Такие паузы называют **Stop-the-world** паузами или же коротко **STW**, т.к. останавливаются ВСЕ потоки, поэтому весь мир действительно останавливается. Сделать STW можно не в любой момент времени, а в так называемых **Safepoint**'ах.
+To perform garbage collection, the JVM stops all threads of the program.\
+These pauses are called **stop-the-world pauses**, or **STWs** for short, because ALL threads are stopped, so the entire world truly stops.\
+STWs can be placed not at any point in time, but at so-called **Safepoints**.
 
-**Safepoint**'ы - это особые места выполнения, в которых известно сотояние потока. Более подробно можно прочитать в статье Шипилёва: **"[JVM Anatomy Quark #22: Safepoint Polls](https://shipilev.net/jvm/anatomy-quarks/22-safepoint-polls/)"**. Места, где можно поставить safepoint'ы зависят от того, интерпритируется ли код или он скомпилирован JIT компилятором. В случае интерпритатора мы можем останавливаться между любыми байткод инструкциями. В случае скомпилированного кода такими точками являются места перед выходом из метода и перед выходом из цикла, а так же места вызова VM Runtime.
+**Safepoints** are special execution locations where the thread's state is known.\
+For more details, see Shipilev's article: "[JVM Anatomy Quark #22: Safepoint Polls](https://shipilev.net/jvm/anatomy-quarks/22-safepoint-polls/)"**.\
+The locations where safepoints can be placed depend on whether the code is interpreted or compiled by a JIT compiler. In the interpreter, we can pause between any bytecode instructions.\
+In compiled code, these points are before method exits, before loop exits, and where the VM Runtime is called.
 
-Про Safepoint есть отличный доклад **"[Андрей Паньгин — Safepoint — и пусть весь мир подождёт](https://www.youtube.com/watch?v=rthWVvU9gWo)"**. 
+Since no memory changes occur during a pause, the garbage collector can begin the process of detecting live objects.\
+First, the garbage collector must determine the starting points from which to traverse the object graph.\
+These starting points are called GC Roots.
 
-Т.к. во время паузы не происходит изменений в памяти, то сборщик мусора может начать процесс обнаружения живых объектов.
-И для начала сборщик мусора должен определить отправные точки, от которых будет обходить граф объектов. Такие отправные точки называются **GC Roots**.
+**GC Roots** are the root elements of the graph from which the search for live objects begins.\
+A look at the material **[Garbage Collection in Java](https://www.w3resource.com/java-tutorial/garbage-collection-in-java.php)** reveals that these elements include:
+- local variables
+- active threads
+- static variables
+- JNI references (i.e., references from called native code)
 
-**GC Roots** - это корневые элементы графа, с которых выполняется поиск живых объектов. Подсмотрев в материал **"[Garbage Collection in Java](https://www.w3resource.com/java-tutorial/garbage-collection-in-java.php)"** можно узнать, что к таким элементам относятся:
-- локальные переменные (local variables)
-- активные потоки (active threads)
-- статические переменные (static variables)
-- JNI ссылки (т.е. ссылки из вызываемого native кода)
+GC Roots are chosen for a reason.\
+When the JVM is paused, it has stopped threads and has access to them.\
+This means the JVM has access to the threads and everything on the thread stack (for example, local variables or **[JNI local references](https://www.ibm.com/docs/en/sdk-java-technology/8?topic=collector-overview-jni-object-references)**).
 
-GC Roots выбраны не просто так. Когда JVM находится в состоянии паузы, прежде всего она остановила потоки и имеет к ним доступ. А это значит что у JVM есть доступ к потоками и всему что есть в стэке потока (например, локальные переменные или **[JNI local references](https://www.ibm.com/docs/en/sdk-java-technology/8?topic=collector-overview-jni-object-references)**).
+Furthermore, **"[classes can also be garbage collected](https://docs.oracle.com/javase/specs/jls/se8/html/jls-12.html#jls-12.7)"**.\
+This means that static variables are also eligible for collection.
 
-Кроме этого, [классы тоже могут быть собраны сборщиком мусора](https://docs.oracle.com/javase/specs/jls/se8/html/jls-12.html#jls-12.7). А это значит, что и статические переменные также доступны для сборки.
+There is a possibility to interract with Garbage Collectors from the code.\
+But it's not a command, but a hint (that can be disabled by ``-XX:+DisableExplicitGC``):
+> You can request garbage collection in the JVM by calling System.gc(), but it is only a hint, not a guarantee.
 
-То, каким образом дальше будет работать сборщик мусора, будет зависеть от реализации сборщика мусора. Этих реализаций есть несколько.
+The subsequent garbage collection behavior depends on the garbage collector implementation.\
+There are several such implementations.
 
 ---------
 
 ## [↑](#home) <a id="serialgc"></a> Serial And Parallel GC
-До Java 9 сборщиком мусора по умолчанию является сборщик мусора **Serial GC**.\
-Данный сборщик мусора отлично описан в статье **"[Дюк, вынеси мусор! — Часть 2](https://habr.com/ru/post/269707/)"**.
+Before Java 9 (Java 8 included), the default garbage collector was the **Parallel GC**.
 
-Схема работы выглядит понятно и прямолинейно:
+The operating scheme is clear and straightforward:
 
 ![](../img/jvm/2_SerialGC.png)
 
+With **Serial GC**, the heap is divided into regions.\
+All new objects go to the "Eden" region.\
+When Eden becomes too crowded, a minor GC is triggered. During this collection, all "dead" objects are removed from Eden.
 
-При Serial GC хип делится на регионы. Все новые объекты попадают в регион **"Eden"** (Эдем). Когда в Эдеме становится слишком тесно, тогда запускается малая сборка (**minor GC**). При такой сборке все "мёртвые" объекты удаляются из Эдема.
+Besides Eden, there are two Survivor regions for those that survive a minor GC.\
+One of these regions is always empty and is used to move all survivors from Eden and from another Survivor region.\
+In this way, surviving objects are moved from one Survivor region to another.\
+This avoids unnecessary fragmentation. This process is called **Compacting**.
 
-Кроме Эдема есть два **Survivor** региона для выживших после minor GC. Один из этих регионов всегда пустой и используется для перемещения в него всех выживших из Эдема **И** из другого Survivor региона. Таким образом выжившие объекты перемещаются то в один Survivor регион, то в другой. Это позволяет избежать излишней фрагментарности. Этот процесс называется **Compacting**.
+Moving between Survivors is not infinite.\
+If an object survives a certain number of such moves, it is moved to the last available region for moving—the Tenured region (which is permanent).
 
-Перемещение между Survivor не бесконечно. Если объект переживает определённое количество таких перемещений, то он перемещается в последний из доступных для перемещения регионов - **Tenured** (бессрочный).
+When even the Tenured region runs out of space, a full garbage collection (full GC) occurs, which is much more resource-intensive than the Minor GC.
 
-Когда место кончается даже в Tenured, то тогда происходит полная сборка мусора (**full GC**), которая гораздо более ресурсозатратная, чем Minor GC.
+For more information: [Serial Garbage Collector](https://perfmatrix.com/serial-garbage-collector-gc/).
 
-Как можно догадаться из названия, данный сборщик мусора делает всё последовательно. Но у него есть альтернатива - **Parallel GC**.
+As the name suggests, this garbage collector performs all collection **sequentially**.\
+However, there is an alternative—Parallel GC.
 
-**Parallel GC** - это Serial GC, который работает в несколько потоков и с некоторыми улучшениями. При малой сборке многопоточно выполняется перенос объектов в старшее поколнение, а при полной сборке - уплотнение данных в старшем поколении. Благодаря тому, что каждый поток получает свой участок для обработки (promotion buffer), с которым может работать только он, разные потоки не мешают друг другу.
+**Parallel GC** is a serial GC that runs in multiple threads and with some improvements.\
+During a minor GC, objects are moved to the older generation by multithreading, while during a full collection, data is compacted in the older generation.\
+Because each thread receives its own processing area (promotion buffer) that only it can work with, different threads do not interfere with each other.
 
-Количество потоков высчитывается с учётом кол-ва ядер процессора. Каждому потоку выделяют свой участок в регионе **Old Gen** (тут так называется Tenured). Такой участок называется **promotion buffer**.
+The number of threads is calculated based on the number of processor cores.\
+Each thread is allocated its own area in the **Old Gen** region (called Tenured here). This area is called the **promotion buffer**.
 
-Parallel GC ведёт статистику и на основе неё может делать некоторые оптимизации, чтобы максимально попытаться уложиться в заданные параметры максимального времени сборки и пропускной способности. Данные параметры могут быть заданы при помощи опций JVM ``-XX:MaxGCPauseMillis`` и ``-XX:GCTimeRatio``.
+Parallel GC maintains statistics and, based on these, can make certain optimizations to best meet the specified maximum collection time and throughput parameters.\
+These parameters can be configured using the JVM options ``-XX:MaxGCPauseMillis`` and ``-XX:GCTimeRatio``.
 
-Более подробно написано на хабре: **"[Дюк, вынеси мусор! — Часть 2](https://habr.com/ru/post/269707/)"**.
+For more information: [Parallel Garbage Collector](https://perfmatrix.com/parallel-garbage-collector/)
 
----------
-
-## [↑](#home) <a id="cms"></a> Concurrent Mark Sweep
-Как альтернативу Parallel GC создали сборщик CMS (Concurrent Mark Sweep).
-
-Данный сборщик использует ту же организацию памяти (Eden + Survivor 0 + Survivor 1 + Tenured) и те же принципы сборки мусора, что и Parallel GC. Можно сказать, что **minor** сборка одинакова для Parallel и CMS сборщиков.
-
-Отличия для CMS начинаются на full GC, которая здесь называется **major GC**. Называется она не full, потому что затрагивает только старшее поколение (т.е. только Tenured). Сайд эффект в этом может заключаться в том, что мусор из младшего поколения не даст очистить мусор из старшего поколения.
-
-Кроме этого, CMS работает постоянно в фоном режиме, а не дожидается заполнения Tenured региона. Чтобы выполнить Major сборку JVM останавливает потоки и помечает все объекты, которые доступны **НАПРЯМУЮ** из GC Roots. После этого приложение возобновляет работу, а GC продолжает искать живые объекты имея в распоряжении уже начатый граф объектов. Затем снова останавливается приложение и GC снова выполняет поиск чтобы найти новые объекты, которые были созданы за время, пока GC строил граф. Когда GC заканчивает помечать живые объекты, работа приложения возобновляется, а сборщик начинает очищать память от "мёртвых" объектов. При этом работа выполняется в несколько потоков.
-
-Кроме того, название данного сборщика отражает тот факт, что выполняется только **Mark** (разметка живых объектов) и **Sweep** (очистка от мёртвых). **Compact** (уплотнение), в отличии от Serial GC и Parallel GC не выполняется, т.к. очистка от мёртвых выполняется во время работающего приложения и уплотнить объекты затруднительно.
-
-Про данный сборщик можно прочитать в материале **"[Дюк, вынеси мусор! — Часть 3](https://habr.com/ru/post/269863/)"**. 
-
-В текущий момент CMS сборщик имеет статус Deprecated (см. **"[JEP 291: Deprecate the Concurrent Mark Sweep (CMS) Garbage Collector](https://openjdk.java.net/jeps/291)"**). Причина - уменьшить кодовую базу, так как для большинства случаев CMS может и должен быть заменён сборщиком G1.
+As an alternative to Parallel GC was provided Concurrent Mark Sweep collector (CMS).\
+But later it was marked as deprecated and it was removed in JDK 14.\
+Full GC was renamed to **major GC** because the scope of this phase was ONLY Tenured region.\
+This GC doesn't have **Compact** stage and garbage from the young gen can keep garbage from old gen.\
+We should know about it only for historical reason.
 
 ---------
 
 ## [↑](#home) <a id="g1"></a> G1 Garbage Collector
-Начиная с Java 9 сборщиком по умолчанию является **G1 Garbage Collector**.
-Про данный сборщик можно прочитать тут: **"[Дюк, вынеси мусор! — Часть 3](https://habr.com/ru/post/269863/)"**.
+Starting with Java 9, the default collector is the **G1 Garbage Collector** (Garbage first).
 
-Регионы тоже имеют тип Eden, Survivor и Tenured, но теперь их много. Их размер выбирается так, чтобы регионов было не больше 2048. Но бывают случаи, когда регионы объединяются в больший регион, чтобы там был очень большой объект. Такие регионы называются "громадные" (**humongous**).
+Regions also have the **Eden**, **Survivor**, and **Tenured** types, but now there are multiple of regions.\
+Their size is chosen by JVM to limit regions conunt to NOT more than 2048 regions.\
+However, there are cases where regions are combined into a larger region to contain a very large object. Such regions are called **"humongous"**.
 
-Разделение регионов на Eden, Survivor и Tenured теперь логическое, регионы одного поколения не обязаны идти подряд и даже могут менять свой тип.
+The division of regions into Eden, Survivor, and Tenured is now logical.\
+Regions of the same generation do not have to be consecutive and can even change their type.
 
-С некоторой периодичностью выполняются Minor сборки, во время которых живые объекты переносятся в Survivor, либо переносятся в Tenured. Перенос выполняется в несколько потоков (как в Parallel GC) с остановкой приложения.
+Minor collections are performed periodically, during which living objects are either promoted to Survivor or promoted to Tenured.\
+The migration is performed by multiple threads (as in Parallel GC) with stop the world pause.
 
-При Minor GC очистка выполняется не на всём поколении, а только в части регионов так, чтобы не привысить желаемое время сборки. При этом GC пытается выбрать именно те, где может скопиться наибольшее количество "мёртвых" объектов. Поэтому и название G1, то есть Garbage First, т.е. "сперва мусор".
+With Minor GC, cleaning is performed not on the entire generation, but only in a subset of regions, so as not to exceed the desired collection time.\
+The GC tries to select those regions where the largest number of "dead" objects can accumulate. Hence the name G1, which stands for **Garbage First**.
 
-Полная сборка в G1 именуется смешанной (**mixed**), т.к. на самом деле такая очистка выполняется вместе с малой сборкой, если выполнение полной сборки необходимо. Решение об этом принимается на основании статистики о прошлых сборках. Перед тем, как включить смешанную сборку GC выполняет цикл пометки, который называется **Marking Cycle**.
+A full collection in G1 is called **mixed**, because this type of cleaning is actually performed along with a minor collection if a full collection is necessary.\
+This decision is made based on statistics from previous collections.\
+Before initiating a mixed collection, the GC performs a marking cycle, called a Marking Cycle.
 
-Данный сборщик мусора использует тактику, которая называется **Snapshot-At-The-Beginning**. Это означает, что сборщик мусора запоминает состояние на начало сборки мусора, после чего отслеживает изменение этого снимка (т.е. новые объекты + изменение связей).
+This garbage collector uses a tactic called **Snapshot-At-The-Beginning**.\
+This means that the garbage collector remembers the state at the start of the garbage collection and then tracks changes to this snapshot (i.e., new objects + reference changes).
 
-**Marking Cycle** (Цикл пометки) - особая фаза, которая выполняется параллельно с работой приложения. Состоит из нескольких шагов, часть из которых выполняется с остановкой приложения.
+The **Marking Cycle** is a special phase that runs in parallel with the application.\
+It consists of several steps, some of which are performed while the application is stopped.
 
-Выполняемые шаги:
-1. **Initial mark** - остановка приложения для пометки GC Root. При этом используется статистика, полученная при выполнении малых сборок.
-2. **Concurrent marking** - возобновление приложения, после которой в нескольких потоках помечаются все живые объекты в куче.
-3. **Remark** - опять останавливается приложение (как в CMS), чтобы попробовать найти ещё живые объекты.
-4. **Cleanup** - очищаем вспомогательные структуры (для учёта ссылок на объекты) и ищем пустые регионы, которые можно использовать для размещения объектов.
+The steps performed are:
+1. **Initial mark** - stops the application to mark the GC Root. This uses statistics obtained during minor collections.
+2. **Concurrent marking** - resumes the application, after which all live objects on the heap are marked in multiple threads.
+3. **Remark** - stops the application again to try to find still-live objects.
+4. **Cleanup** - cleans up auxiliary structures (for keeping track of object references) and searches for empty regions that can be used to allocate objects.
 
-Когда данные шаги будут выполнены GC переключится в режим выполнения смешанных сборок, во время которых будут убираться мусор не только из младших поколений. То, какое количество старших регионов очищать выбирается на основе статистики. В том числе, на основе этой статистики GC будет решать, когда перестать работать в режиме смешанных сборок.
+Once these steps are completed, the GC will switch to mixed collection mode, which will remove garbage from more than just the younger generations.\
+The number of older regions to clean is determined based on statistics.\
+These statistics will also be used by the GC to decide when to stop running in mixed collection mode.
+
+For more information:
+- **"[Java's G1 Garbage Collector](https://www.youtube.com/watch?v=2PIBF92iOvQ)"**.
+- **"[Garbage Collection in Java - The progress since JDK 8](https://www.youtube.com/watch?v=L68zxvl2LPY)"**
+- **"[Garbage Collection in Java: Choosing the Correct Collector](https://www.youtube.com/watch?v=2Obf2LqEvyk)"**
+- **"[Devoxx: Exploring the JVM memory management by Gerrit Grunwald](https://www.youtube.com/watch?v=Jh79ojcror0)"**
+
+There are exist other GC from external companies, like **[C4 Garbage Collector](https://docs.azul.com/prime/c4-garbage-collection.html)**.
 
 ---------
 
 ## [↑](#home) <a id="finalize"></a> Finalize
-Говоря про сборку мусора нужно помнить про такой метод из класса Object, который называется **[finalize](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/lang/Object.html#finalize())**.
+When talking about garbage collection, it's important to remember the method in the Object class called **[finalize](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/lang/Object.html#finalize())**.
 
-Данный метод можно переопределить у любого класса и тогда при сборке мусора объект, который является мусором, не будет так просто удалён. Такой объект будет помещён в особую очередь ReferenceQueue в особом фоновом потоке Finalizer, который поочерёдно из этой очереди достаёт такие объекты, вызывает на каждом из них **finalize()**. После этого такие объекты станут доступны для сборки.
+This method can be overridden in any class, and then during garbage collection, garbage objects won't be easily deleted.\
+Such objects will be placed in a special ReferenceQueue queue on a special background Finalizer thread, which retrieves such objects from this queue one by one and calls **finalize()** on each one.\
+After this, such objects will become eligible for collection.
 
-Только из этого описания уже видны недостатки:
-- Объекты, в классе которых есть finalize, собираются за 2 сборки мусора
-- Чем больше объектов в очереди Finalizer, тем дольше начинают жить объекты, которые мусор
-- Метод finalize - это просто обычный метод. Таким образом реализации могут "потерять" логику из супер класса, если забудут вызвать finalize у super
-- В случае исключений в finalize финализация может не завершится и объект останется в неконсистентном состоянии, а ресурсы не будут освобождены
-- Нет гарантий, в какой момент времени и в каком порядке будут вызваны finalize методы у разных объектов
+From this description alone, the shortcomings are already clear:
+- Objects whose classes have finalize are collected in two garbage collections.
+- The more objects in the Finalizer queue, the longer the lifespan of garbage objects.
+- The finalize method is just a regular method. Thus, implementations can "lose" logic from the superclass if they forget to call finalize on the super.
+- If exceptions occur in finalize, finalization may not complete, leaving the object in an inconsistent state, and resources will not be freed.
+- There are no guarantees when and in what order finalize methods will be called on different objects.
 
-Подробнее можно посмотреть в докладе **"[Вы всё ещё используете finalize()? Тогда мы идём к вам](https://www.youtube.com/watch?v=K5IctLPem0c)"**.
-
-Таким образом механизм finalize стоит избегать. Начиная с Java 9 на замену пришёл **[java.lang.ref.Cleaner](https://bugs.openjdk.java.net/browse/JDK-8138696)**. Cleaner позволяет зарегистрировать объект и runnable, который запускается в качестве финализатора.
-
-Разговоры про Finalize и про сборку непримернно приводят к разговору и про такой интересный инструмент как **[java.lang.ref.Reference](https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/lang/ref/Reference.html)**.
-
----------
-
-## [↑](#home) <a id="ref"></a> java.lang.ref.Reference
-В Java есть особый абстрактный класс, который представляет из себя ссылку на объект. Реализации этого класса обрабатываются особым образом сборщиками мусора. Каждая реализация описывает различный уровень "силы" ссылки. Эта сила влияет на то, при каких обстоятельствах объект, на который ведёт ссылка, будет собран сборщиком мусора.
-
-Стоит помнить, что обычное присвоение ссылки на объект является "сильной" ссылкой (**Strong**). То есть пока ссылка есть - объект не соберут. Это самаое строгое обязательство.
-
-Как антоним, для "сильных ссылок" есть "слабые ссылки" (**Weak Reference**).
-**Weak Reference** - это ссылка, которая не удерживает объект от сборки GC. Как пример использования - карты **WeakHashMap**, где значения из карты удаляются тогда, когда ключи уже не используются (с оговоркой, что значения не должны держать ключи).
-
-По середине между **Strong** и **Weak** стоит **Soft**.\
-**Soft Reference**, т.е. "мягкие ссылки", собираются сборщиком только тогда, когда памяти начнёт нехватать. Если памяти хватает, а объекты уже никем не используются, то они остаются жить. Подробнее см. **"[Guidelines for using the Java 2 reference classes](https://www.ibm.com/developerworks/library/j-refs/)"**.
-
-И самые необычные Reference - **PhantomReference**.\
-**PhantomReference** - это фантомные ссылки. Такие ссылки необычны тем, что всегда возвращают null вместо объекта и нужны в основном для того, чтобы такие Reference использовать для отслеживания сборки объектов, т.к. фантомные ссылки поступают в ReferenceQueue когда объекты собраны (именно поэтому они возвращают null всегда). Вместо использования фантомных ссылок начиная с Java 9 появилась возможность использовать специальный **[Cleaner](https://www.logicbig.com/tutorials/core-java-tutorial/gc/ref-cleaner.html)**.
+Therefore, the finalize mechanism should be avoided.\
+Since Java 9, it has been replaced by **[java.lang.ref.Cleaner](https://bugs.openjdk.java.net/browse/JDK-8138696)**.\
+Cleaner allows you to register an object and a runnable that is invoked as a finalizer.
 
 ---------
 
-## [↑](#home) <a id="practice"></a> Practice
-Для практики нам понадобится некоторое Java приложение.\
-Нам понадобится несколько импортов:
+## [↑](#home) <a id="monitoring"></a> JVM monitoring
+So, which tools can be used to analyze the JVM?
+
+At first, we need to know **Process ID** of our analyzed java application.\
+The **[jps](https://docs.oracle.com/en/java/javase/11/tools/jps.html)** tool should be used for that.
+
+The **JVisual VM** can be used to analyze GC activities and related things.\
+For example: **"[Analyze JVM Memory using JVisual VM](https://www.youtube.com/watch?v=AHLkbqcVLvY)"**.
+
+Download link: [VisualVM](https://visualvm.github.io/download.html).\
+More details about getting started can be found in the **"[VisualVM: Getting Started](https://visualvm.github.io/gettingstarted.html)"** manual.
+
+For more details: **"[Mastering JVM Memory Troubleshooting - From OutOfMemoryErrors to Leaks](https://www.youtube.com/watch?v=kwFP-zCLV2M)"**.
+
+Also, Flight Recorder and Mission Control can be used.\
+See more: 
+- **"[Java Flight Recorder Tutorial: How to Profile Java Applications](https://www.youtube.com/watch?v=bUnhIa2xuiE)"**
+- **"[Programmer's Guide to JDK Flight Recorder](https://www.youtube.com/watch?v=AgFOJEkBVjg)"**.
+
+The **jcmd** tool can be used to get details. For example:
+```
+jcmd <pid> VM.info
+jcmd <pid> VM.flags
+jcmd <pid> GC.heap_info
+jcmd <pid> GC.class_histogram
+jcmd <pid> Thread.print -l
+```
+
+For Thread dumps the **Eclipse Memory Analyzer Tool (MAT)** can be used.
+
+Also, since Java 9, using the [jhsdb](https://docs.oracle.com/javase/9/tools/jhsdb.htm) utility, we can connect to a JVM by its process ID (PID) and request information. For example:
+> jhsdb jmap --pid 24636 --heap
+
+You can also create a heap dump using the same command:
+> jhsdb jmap --pid 24636 --binaryheap --dumpfile heap.hprof
+
+For practice, next imports can be used:
 ```java
 import java.net.*;
 import java.io.*;
@@ -202,7 +389,7 @@ import java.util.concurrent.*;
 import com.sun.net.httpserver.*;
 ```
 
-Нам понадобится некоторый код, который будет вызываться. Допустим:
+And then the application code. For example:
 ```java
 private static class MyHttpHandler implements HttpHandler {    
     @Override    
@@ -216,7 +403,7 @@ private static class MyHttpHandler implements HttpHandler {
 }
 ```
 
-И непосредственно сам код запуска:
+And the application entry point:
 ```java
 public static void main(String[] args) throws Exception {
     InetSocketAddress address = new InetSocketAddress("localhost", 8001);
@@ -228,22 +415,4 @@ public static void main(String[] args) throws Exception {
 }
 ```
 
-При помощи утилиты **[jps](https://docs.oracle.com/en/java/javase/11/tools/jps.html)** мы можем найти запущенный процесс и найти его process ID (PID).
-
-При помощи утилиты [jhsdb](https://docs.oracle.com/javase/9/tools/jhsdb.htm) начиная с Java 9 мы можем подключаться к JVM по её ID процесса (PID) и запрашивать информацию. Например:
-> jhsdb jmap --pid 24636 --heap
-
-Кроме того, при помощи всё той же команды можно создавать Heap Dump:
-> jhsdb jmap --pid 24636 --binaryheap --dumpfile heap.hprof
-
-Можно так же скачать [VisualVM](https://visualvm.github.io/download.html). Более подробно о запуске можно прочитать в мануале [VisualVM: Getting Started](https://visualvm.github.io/gettingstarted.html).
-
-
----------
-
-## [↑](#home) <a id="resources"></a> Resources
-Дополнительные материалы:
-- [Understanding Java Garbage Collection Logging](https://sematext.com/blog/java-garbage-collection-logs/#toc-how-to-enable-gc-logging-3)
-- [Troubleshooting Memory Problems in Java Applications](https://www.youtube.com/watch?v=iixQAYnBnJw)
-- [Do Your GC Logs Speak to You?](https://www.youtube.com/watch?v=Miwga8-dx0A)
-- [Сборка мусора в Java: что это такое и как работает в JVM](https://medium.com/nuances-of-programming/сборка-мусора-в-java-что-это-такое-и-как-работает-в-jvm-25bb2570b44c)
+----

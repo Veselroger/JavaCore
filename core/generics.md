@@ -6,196 +6,217 @@
 - [Wildcards](#wildcards)
 - [Generic classes](#class)
 - [Generic methods](#methods)
-- [Resources](#resources)
 
 ----
 
 ## [↑](#home) <a id="generics"></a> Generics
-**[Generics](https://docs.oracle.com/javase/tutorial/java/generics/why.html)** - это специальный механизм, появившийся на чиная с Java 5.0, который позволяет достичь более сильной проверки типов (**Stronger type checks**) на этапе компиляции, позволяет переиспользовать один и тот же код, но с разными входными данными, а так же позволяет уменьшить количество явных кастов в коде.
+**[Generics](https://docs.oracle.com/javase/tutorial/java/generics/why.html)** is a special mechanism introduced in Java 5.0.\
+It enables stronger type checking at compile time, allows reuse of the same code but with different inputs, and reduces the number of explicit casts in code.
 
-До Generics мы бы писали так:
+Before Generics, we would write it like this:
 ```java
 List numbers = new ArrayList();
 numbers.add(2);
 numbers.add("2");
 System.out.println((Integer) numbers.get(0) + 2);
-```       
-Проблема данного кода в том, что в нём используется явный cast, который может привести к ошибке уже во время выполнения. Нулевой элемент в данном случае отработает без проблем, а вот первый элемент упадёт с ошибкой.
+```
+The problem with this code is that it uses an explicit cast, which can lead to a runtime error.\
+The zeroth element will work fine in this case, but the first element will fail.
 
-Начиная с Java 5 такое употребление типов назвали **Raw Types**, а типы с уточнением - **Generic Types**:
+Starting with Java 5, this type usage was called **Raw Types**, and qualified types were called **Generic Types**:
 ```java
 List<Integer> numbers = new ArrayList<Integer>();
 numbers.add(2);
 System.out.println(numbers.get(0) + 2);
 ```
 
-Кроме этого, механизм дженериков использует механизм **"[выведения типов](https://docs.oracle.com/javase/tutorial/java/generics/genTypeInference.html)"**, оно же Type Inference. Благодаря этому в дженериках можно не указывать тип, если его компилятор сможет определить сам (по переданным параметрам или по типу переменной). Такое указание называется **"Diamond operator"**:
+In addition, the generics mechanism uses the **"[type inference](https://docs.oracle.com/javase/tutorial/java/generics/genTypeInference.html)"** mechanism, also known as Type Inference.\
+Thanks to this, generics do not need to specify the type if the compiler can infer it automatically (from the passed parameters or the variable type).\
+This specification is called the **"Diamond operator"**:
 ```java
 List<Integer> numbers = new ArrayList<>();
 ```
 
-Так как раньше дженериков не было и нужна совместимость со старым кодом, то при компиляции java кода в байт-код происходит стирание типов (**[Type Erasure](https://docs.oracle.com/javase/tutorial/java/generics/erasure.html)**), при котором дженерики заменяются типами, которые задают границы. В случае, если такие границы не указаны, то границы будут заданы типом Object.\
-Например:
+Since generics didn't exist previously and compatibility with legacy code is required, type erasure (**[Type Erasure](https://docs.oracle.com/javase/tutorial/java/generics/erasure.html)**) occurs when compiling Java code to bytecode.\
+This process replaces generics with types that define bounds. If such bounds are not specified, the bounds will be defined by the Object type.\
+For example:
 
 ![](../img/generics/erasure.png)
 
-Но стоит так же отметить, что на самом деле стирание типов хоть и происходит, но всё же некоторая информация в некоторых случаях доступна и в runtime. Например, для анонимных классов:
+It's also worth noting that, although type erasure does occur, some information is still available at runtime in some cases.\
+For example, for anonymous classes:
 ```java
 public static void main(String[] args) {
-    List<String> list = new ArrayList<String>() {};
-    ParameterizedType t = (ParameterizedType) list.getClass().getGenericSuperclass();
-    System.out.println("Generic:" + t.getActualTypeArguments()[0]);
+	List<String> list = new ArrayList<String>() {};
+	ParameterizedType t = (ParameterizedType) list.getClass().getGenericSuperclass();
+	System.out.println("Generic:" + t.getActualTypeArguments()[0]);
 }
 ```
-Благодаря этому факту, такие фрэймворки как Spring могут использовать эту информацию для своих целей. Подробнее можно прочитать в статей "[Spring Framework 4.0 and Java Generics](https://spring.io/blog/2013/12/03/spring-framework-4-0-and-java-generics)", где рассказывается, что Spring благодаря этой информации умеет делать так:
+
+Thanks to this fact, frameworks like Spring can use this information for their own purposes.\
+You can read more in the articles "[Spring Framework 4.0 and Java Generics](https://spring.io/blog/2013/12/03/spring-framework-4-0-and-java-generics)", which explains that Spring uses this information to do the following:
 ```java
 @Autowired
 private Store<String> s1;
 ```
 
-Дженерики могут быть указаны для методов, а так же классов и интерфейсов.
+Generics can be specified for methods, as well as classes and interfaces.
 
+----
 
 ## [↑](#home) <a id="covariance"></a> Ковариантность и инвариантность
-К работе с типами есть два подхода: **Ковариантность** и **инвариантность**.
+There are two approaches to working with types: **Covariance** and **invariance**.
 
-Изначально в Java выбрали вариант с ковариантностью. Так были построены массивы:
+Initially, Java chose the covariance approach. This is how arrays were constructed:
 ```java
 String[] strings = new String[2];
 Object[] objects = strings;
 objects[0] = 12;
 ```
-Строчка 2 не содержит ошибок, т.к. тип Object является родительским для String. С точки зрения компилятора строчка 3 корректна, т.к. массив objects принимает любые объекты, то туда можно положить и Integer. Однако в реальности массив у нас должен содержать строки. В итоге на строчке 3 всё упадёт с ошибкой **java.lang.ArrayStoreException**. Что самое страшное, что эта ошибка не будет отловлена на моменте компиляции, а произойдёт уже где-то и когда-то в работающем приложении.
+Line 2 contains no errors, since the Object type is the parent of String.\
+From the compiler's perspective, line 3 is correct, since the objects array accepts any objects, so you can put an Integer there.\
+However, in reality, our array must contain strings.\
+As a result, everything will fail on line 3 with a **java.lang.ArrayStoreException** error.\
+The worst part is that this error won't be caught at compile time, but will occur somewhere and at some point in the running application.
 
-Так как дженерики были разработаны для более строгой типизации, то дженерики инварианты. Это означает, что дженерики не сохраняют иерархию. Например, следующая строчка просто не скомпилируется:
+Since generics were designed for stricter typing, generics are invariant.\
+This means that generics do not preserve hierarchy.\
+For example, the following line simply won't compile:
 ```java
 List<Number> numbers = new ArrayList<Integer>();
 ```
 
-Единственное, механизм дженериков ломается при смешивании дженериков и raw types. Такую ситуацию называют **"[Heap Pollution](https://itsobes.ru/JavaSobes/chto-takoe-heap-pollution/)"**:
+The only problem is that the generics mechanism breaks when mixing generics and raw types.\
+This situation is called **"[Heap Pollution](https://itsobes.ru/JavaSobes/chto-takoe-heap-pollution/)"**:
 ```java
 List<Integer> numbers = new ArrayList<Integer>();
 List rawList = numbers;
 rawList.add("test");
 System.out.println(numbers.get(0) + 2);
 ```
-Данный код упадёт с ошибкой во время выполнения, т.к. для компилятора последня строчка не содержит ошибки.
+This code will fail at runtime because For the compiler, the last line does not contain an error.
 
+----
 
 ## [↑](#home) <a id="wildcards"></a> Wildcards
-**[Wildcards](https://docs.oracle.com/javase/tutorial/java/generics/wildcards.html)** - это специальный механизм, позволяющий указать, что тип неизвестен. Согласно Java Tutorial от Oracle, wildcard'ом называется question mark (?), который подразумевает, что в месте его использование указан неизвестный тип.
+**[Wildcards](https://docs.oracle.com/javase/tutorial/java/generics/wildcards.html)** is a special mechanism for indicating that a type is unknown.\
+According to Oracle's Java Tutorial, a wildcard is a question mark (?), which implies that an unknown type is specified where it is used.
 
-Хорошее объяснение даётся в guide от Oracle: **"[Generics: Wildcards](https://docs.oracle.com/javase/tutorial/extra/generics/wildcards.html)"**. Как выше было сказано, дженерики инварианты, а следовательно возникнет проблема с таким методом:
+A good explanation is given in the Oracle guide: **"[Generics: Wildcards](https://docs.oracle.com/javase/tutorial/extra/generics/wildcards.html)"**.\
+As mentioned above, generics are invariant, and therefore a problem arises with the following method:
 ```java
 static void printCollection(Collection<Object> c) {
-    for (Object e : c) {
-        System.out.println(e);
-    }
+	for (Object e : c) {
+		System.out.println(e);
+	}
 }
 ```
-То есть нельзя вызвать метод: ``printCollection(new ArrayList<Integer>());``\
-Но можно использовать wildcard и изменить сигнатуру метода:
+That is, you can't call the method: ``printCollection(new ArrayList<Integer>());``\
+But you can use a wildcard and change the method signature:
 ```java
-static void printCollection(Collection<?> c) {
+static void printCollection(Collection<?> c) ​​{
 ```
 
-Кроме того, есть возможность указать верхнюю границу:
+Furthermore, it is possible to specify an upper bound:
 ```java
 static int sum(Collection<? extends Number> c) {
-    int sum = 0;
-    for (Number e : c) {
-        sum = sum + e.intValue();
-    }
-    return sum;
+	int sum = 0;
+	for (Number e : c) {
+		sum = sum + e.intValue();
+	}
+	return sum;
 }
 ```
 
-Стоит помнить, что указав extends мы теряем возможность добавлять значения:
+It's worth remembering that by specifying extends, we lose the ability to add values:
 ```java
 static void addZero(Collection<? extends Number> c) {
-    c.add(0);
+	c.add(0);
 }
-``` 
-Как можно догадаться, нет никакой гарантии, коллекция каких Number нами получена. Следовательно, мы не можем ничего добавить, чтобы в какие-нибудь Double не добавить Integer.
+```
+As you might guess, there's no guarantee of what kind of Number collection we're receiving.\
+Therefore, we can't add anything without adding an Integer to some Double.
 
-Если wildcard используется в определении потребителя (т.е. куда мы хотим добавить значение), то нужно использовать ``<? super Number>``:
+If a wildcard is used in a consumer definition (i.e., where we want to add a value), we must use ``<? super Number>``:
 ```java
 static void addZero(Collection<? super Number> c) {
-    c.add(0);
-    c.add(0.0);
+	c.add(0);
+	c.add(0.0);
 }
 ```
 
-Таким образом, при использовании wildcard'ов следует помнить про **PECS**.
-**PECS** (**Producer Extends Consumer Super**) - это правило, которое гласит, что если типизируемый объект является источником данных (т.е. мы получаем из него данные), тогда в дженерике используется **extends**, а если объект является получателем данных (т.е. мы добавляем в него данные) - используется **super**.
+Therefore, when using wildcards, remember about **PECS**.
+**PECS** (**Producer Extends Consumer Super**) is a rule that states that if the typed object is a data source (i.e., we receive data from it),\
+then **extends** is used in the generic, and if the object is a data consumer (i.e., we add data to it), then **super** is used.
 
-Правило **PECS** удобно рассмотреть на примере:
+The **PECS** rule is best illustrated with an example:
 ```java
 public void addFirst(List<? extends T> source) {
 	this.entry = source.get(0);
 }
 ```
-В данном случае **source** выступает в роли producer, а следовательно должен указывать **extends**. Если указать здесь **super**, то это приведёт к ошибке компиляции.
+In this case, **source** acts as a producer and therefore must specify **extends**.\
+Specifying **super** here will result in a compilation error.
 
-Тема Wildcard в дженериках отлично раскрыта в лекции от **"[Тагир Валеев - Generics](https://www.youtube.com/watch?v=usiKCn7SwxI&t=2234s)"**.
+The topic of wildcards in generics is well covered in the lecture by **"[Tagir Valeev - Generics](https://www.youtube.com/watch?v=usiKCn7SwxI&t=2234s)"**.
 
+----
 
 ## [↑](#home) <a id="class"></a> Generic classes
-Дженерики могут быть использованы при описании класса:
+Generics can be used when defining a class:
 ```java
 private static class Box<T> {
-    private T entry;
-    public Box(){}
-    public Box(T entry) { this.entry = entry; }
-    public void add(T obj) { this.entry = obj; }
-    public T get() { return this.entry; }
+	private T entry;
+	public Box(){}
+	public Box(T entry) { this.entry = entry; }
+	public void add(T obj) { this.entry = obj; }
+	public T get() { return this.entry; }
 }
 ```
 
-Благодаря дженерику компилятор сможет сам вывести тип:
+Thanks to the generic, the compiler can infer the type:
 ```java
 new Box<>("string").get().length();
 ```
-Это возможно благодаря тому, что раз в конструктор мы получили string, значит и тип будет string.
+This is possible because since we received a string in the constructor, the type will be string.
 
-Кроме того, дженерики в описании класса могут быть уточнены при помощи слова **extends**, например:
+Additionally, generics in class definitions can be qualified with the **extends** keyword, for example:
 ```java
 public static class Box<T extends Number> {
 ```
-При этом мы сможем создавать экземпляры Box только с типами, которые наследуются от Number:
+
+This will only allow us to create Box instances with types that inherit from Number:
 ```java
 Box<Integer> t = new Box<>();
 t.add(1);
 ```
 
-Кроме этого, в дженерике можно указать, какие интерфейсы должны быть реализованы дополнительно к основному требованию. Например:
+Furthermore, generics can specify which interfaces must be implemented in addition to the primary requirement.\
+For example:
 ```java
 private static class Box <T extends Number & Comparable<T>> {
 ```
 
+----
 
 ## [↑](#home) <a id="methods"></a> Generic methods
-Дженерики могут быть использованы не только в объявлении классов, но и в объявлении методов ([Generic Methods](https://docs.oracle.com/javase/tutorial/java/generics/methods.html)).
+Generics can be used not only in class declarations but also in method declarations: **"[Generic Methods](https://docs.oracle.com/javase/tutorial/java/generics/methods.html)"**.
 
-Дженерик в методе указывается в самый последний момент, но до его первого использования. Так как дженерик может использоваться как результат метода, то для методов дженерики указываются **ПЕРЕД** возвращаемым типом.
+A generic is declared last in a method, but before its first use.\
+Since a generic can be used as a method result, generics are declared BEFORE the return type for methods.
 
-Например:
+For example:
 ```java
 public static <K extends Number> Box<K> create(K obj) {
-    return new Box<K>(obj);
+	return new Box<K>(obj);
 }
 ```
-Такой метод будет пытаться вывести K из того аргумента, который будет указан в качестве параметра метода. Но если вывести не получится (например, ``Box.create(null)``), то граница будет приведена к указанной границе. Т.е. в данном случае к Number.
+This method will attempt to infer K from the argument specified as the method parameter.\
+However, if inference fails (for example, ``Box.create(null)``), the bound will be set to the specified bound, which in this case is Number.
 
-Чтобы в методе уточнить тип необходимо указывать дженерик ПЕРЕД методом:
+To specify a type in a method, you must specify the generic BEFORE the method:
 ```java
 Box.<Integer>create(null)
 ```
 
-
-## [↑](#home) <a id="resources"></a> Resources
-Дополнительные материалы на тему дженериков:
-- [Тагир Валеев - Generics](https://www.youtube.com/watch?v=usiKCn7SwxI&t=2234s).
-- [Александр Маторин — Неочевидные Дженерики](https://www.youtube.com/watch?v=_0c9Fd9FacU)
-- [Юрий Ткач - Generics](https://www.youtube.com/watch?v=MniNZsyjH9E&list=PL6jg6AGdCNaX1yIJpX4sgALBTmTVc_uOJ)
-- [Пришел, увидел, обобщил: погружаемся в Java Generics](https://habr.com/ru/company/sberbank/blog/416413/)
+----
