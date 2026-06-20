@@ -16,7 +16,10 @@
     - [Collections Framework](./core/collections.md)
     - [Stream API](./core/stream.md)
     - [Generics](./core/generics.md)
+	- [Design patterns](./core/patterns.md)
 - Concurrency
     - [Threads](./threads/threads.md)
 - Tools
     - [Maven](./tools/maven.md)
+	- [JUnit](./tools/junit.md)
+	- [Linux](./tools/linux.md)

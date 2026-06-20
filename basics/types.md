@@ -9,6 +9,7 @@
     - [String Pool](#string)
 - [Arrays](#arrays)
 - [Enums](#enum)
+- [Annotations](#annotations)
 
 ----
 
@@ -277,6 +278,33 @@ When compiled, this code becomes:
 ```java
 public final class MyEnum extends java.lang.Enum<MyEnum> {
 ```
-Internally, an array of MyEnum instances will be initialized (OPTION1 and OPTION2 are MyEnum instances). This is why we can search the array by index (using the ``values()`` method) or by name (using the ``valueOf(String name)`` method).
+Internally, an array of MyEnum instances will be initialized (OPTION1 and OPTION2 are MyEnum instances).\
+This is why we can search the array by index (using the ``values()`` method) or by name (using the ``valueOf(String name)`` method).
+
+It's much better than just integer constants because we can check enum types for arguments.\
+We don't need to maintain the collection of entries.\
+Also, enums can have the behavior (i.e. methods).
+
+----
+
+## [↑](#home) <a id="annotations"></a> Annotations
+Java **[annotations](https://www.youtube.com/watch?v=pPZSFsO1hqw)** are labels that add metadata to your code.\
+They do not directly change how code executes. Instead, they provide info to compilers, build tools, or frameworks.
+
+For example:
+```java
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface Loggable {
+}
+```
+We can define where annotation can be used (``@Target``) and when it can be available (``@Retention``).
+
+**RetentionPolicy** can be SOURCE, CLASS and RUNTIME.\
+Annotations in source are important for compilers, for example: ``@Override``.\
+Class retention is a bit tricky. Usually such annotations are used by bytecode analysis tools, IDE (like nullability checks)\
+Runtime annotations are available at runtime and can be analyzed with Java Reflection API.
+
+Annotations don't have behavior (i.e. don't have methods).
 
 ----

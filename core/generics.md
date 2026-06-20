@@ -11,7 +11,8 @@
 
 ## [↑](#home) <a id="generics"></a> Generics
 **[Generics](https://docs.oracle.com/javase/tutorial/java/generics/why.html)** is a special mechanism introduced in Java 5.0.\
-It enables stronger type checking at compile time, allows reuse of the same code but with different inputs, and reduces the number of explicit casts in code.
+It enables stronger type checking at compile time, allows reuse of the same code but with different inputs, and reduces the number of explicit casts in code.\
+See **[What is a generic type?](https://www.youtube.com/watch?v=8hrwY3gflSw)**.
 
 Before Generics, we would write it like this:
 ```java
@@ -23,7 +24,8 @@ System.out.println((Integer) numbers.get(0) + 2);
 The problem with this code is that it uses an explicit cast, which can lead to a runtime error.\
 The zeroth element will work fine in this case, but the first element will fail.
 
-Starting with Java 5, this type usage was called **Raw Types**, and qualified types were called **Generic Types**:
+Starting with Java 5, this type usage was called **Raw Types**.\
+And now it's recommended to use qualified types that are called **Generic Types**:
 ```java
 List<Integer> numbers = new ArrayList<Integer>();
 numbers.add(2);
@@ -60,27 +62,45 @@ You can read more in the articles "[Spring Framework 4.0 and Java Generics](http
 private Store<String> s1;
 ```
 
-Generics can be specified for methods, as well as classes and interfaces.
+Generics can be specified for methods, as well as classes and interfaces.\
+⚠️ Generic class can't extend **'java.lang.Throwable'**.\
+The reason is that parameter will be erased and we can't distinguish different options:
+```java
+try {
+    throw new MyException<Integer>(42);
+} catch (MyException<String> e) { // How JWM should deal with it?
+    ...
+}
+```
 
 ----
 
-## [↑](#home) <a id="covariance"></a> Ковариантность и инвариантность
+## [↑](#home) <a id="covariance"></a> Covariance and Invariance
 There are two approaches to working with types: **Covariance** and **invariance**.
 
-Initially, Java chose the covariance approach. This is how arrays were constructed:
-```java
-String[] strings = new String[2];
-Object[] objects = strings;
-objects[0] = 12;
-```
-Line 2 contains no errors, since the Object type is the parent of String.\
-From the compiler's perspective, line 3 is correct, since the objects array accepts any objects, so you can put an Integer there.\
-However, in reality, our array must contain strings.\
-As a result, everything will fail on line 3 with a **java.lang.ArrayStoreException** error.\
-The worst part is that this error won't be caught at compile time, but will occur somewhere and at some point in the running application.
+Types are **Invariant** if there is no inheritance relationship between them.
 
-Since generics were designed for stricter typing, generics are invariant.\
-This means that generics do not preserve hierarchy.\
+Initially, Java chose the **covariance** approach. This is how arrays were constructed:
+```java
+Number[] tst = new Integer[5];
+tst[0] = 2;
+System.out.println(Arrays.toString(tst));
+```
+Covariance means that types support inheritance.\
+We can use more general type for variable declaration and more specific type for variable initialization.
+
+The problem is that we can put any numbers to array that is integer array.\
+And such problems throw exception at Runtime that is very painful.\
+For example:
+```java
+Number[] tst = new Integer[5];
+tst[0] = 2;
+tst[1] = 2.2F;
+``` 
+Such code throws **java.lang.ArrayStoreException** because we can't put float to integer array.
+
+Generics were designed for stricter typing.\
+Genericas are **invariant** that means that they don't support inheritance.\
 For example, the following line simply won't compile:
 ```java
 List<Number> numbers = new ArrayList<Integer>();
@@ -94,6 +114,7 @@ List rawList = numbers;
 rawList.add("test");
 System.out.println(numbers.get(0) + 2);
 ```
+That's why it's not recommended to use raw types.\
 This code will fail at runtime because For the compiler, the last line does not contain an error.
 
 ----
@@ -111,13 +132,51 @@ static void printCollection(Collection<Object> c) {
 	}
 }
 ```
-That is, you can't call the method: ``printCollection(new ArrayList<Integer>());``\
+We can accept any Collection implementation (because types are covariant).\
+But we can't accept parametrization that is differ from Object, because parametrization is invariant.\
+That is, you can't call the method: ``printCollection(new ArrayList<Integer>());``.
+
+**Wildcards** allows to enable inheritance support at some extent.\
+The main idea of wildcards is to say: "I don't know the type".
+
 But you can use a wildcard and change the method signature:
 ```java
-static void printCollection(Collection<?> c) ​​{
+static void printCollection(ArrayList<?> collection) {
+	Object o = collection.get(0); // Anyway it will be Object
+	collection.add(2); // We can't guarantee that collection contains ints 
+}
 ```
+So, we can work with any ArrayList (or any subtypes of it) BUT **we don't know the type** that we can put inside.\
+Also, we don't know what we can get out of it, that's why it's Object.
 
-Furthermore, it is possible to specify an upper bound:
+Because generics are about strict type parametrization, we can't put anything inside.\
+Because in other cases we can put something that should not be inside this collection.\
+And we don't have enough information to check it and to prevent it.
+
+So, for the question "can we add something to List<?>"? the answer is: No.
+
+
+We can define **[bounds](https://www.youtube.com/watch?v=zVDCSUkZA0A)** for this unknown type.
+
+It is possible to specify an **upper bound**.\
+In that case we should use the **"extends"** keyword:
+```java
+List<? extends Number> integers = List.of(1, 2.2F, 3);
+```
+It means that "we don't know the type, BUT we 100% sure that it's Number".\
+Then, we are 100% sure that elements are Number and they have all methods that are available for Numbers.\
+It means that we can call such methods on elements, BUT we can't put anything to the list.
+
+```java
+ArrayList<Number> arr = new ArrayList<>();
+arr.add(2);
+arr.add(2.3);
+```
+Looks similar to this code. BUT!\
+Here we say "**we KNOW the type**. We are storing anything that is Number".\
+That's why we can put any Number inside, because we **KNOW**/**expect** it.
+
+The same approach can be used for methods:
 ```java
 static int sum(Collection<? extends Number> c) {
 	int sum = 0;
@@ -128,37 +187,37 @@ static int sum(Collection<? extends Number> c) {
 }
 ```
 
+![](../img/generics/generics_extend.png)
+
+As we can see, we know that collections consists of Numbers.\
+We know that whatever is lying there, it definitely has methods of Numbers.\
+That's why we can use methods that are available for Number class.
+
 It's worth remembering that by specifying extends, we lose the ability to add values:
 ```java
 static void addZero(Collection<? extends Number> c) {
 	c.add(0);
 }
 ```
-As you might guess, there's no guarantee of what kind of Number collection we're receiving.\
-Therefore, we can't add anything without adding an Integer to some Double.
+The reason is simple: we can't "polute" collection with new items without knowing their type.\
+We MUST NOT put integers to collection of float numbers, etc.
 
-If a wildcard is used in a consumer definition (i.e., where we want to add a value), we must use ``<? super Number>``:
+It is possible to specify an **lower bound**.\
+In that case we can use the **super** keyword:
 ```java
-static void addZero(Collection<? super Number> c) {
+static void addZero(ArrayList<? super Number> c) {
 	c.add(0);
 	c.add(0.0);
+	Object object = c.get(0);
 }
 ```
+The target type is: Number. It means that we know that we get a container where it's safe to store Numbers.
+BUT we know that our method user can pass ``ArrayList<Number>`` or ``ArrayList<Object>``.\
+We don't know the type. That's why we get Object.
 
-Therefore, when using wildcards, remember about **PECS**.
+Such rules are called **PECS**.\
 **PECS** (**Producer Extends Consumer Super**) is a rule that states that if the typed object is a data source (i.e., we receive data from it),\
 then **extends** is used in the generic, and if the object is a data consumer (i.e., we add data to it), then **super** is used.
-
-The **PECS** rule is best illustrated with an example:
-```java
-public void addFirst(List<? extends T> source) {
-	this.entry = source.get(0);
-}
-```
-In this case, **source** acts as a producer and therefore must specify **extends**.\
-Specifying **super** here will result in a compilation error.
-
-The topic of wildcards in generics is well covered in the lecture by **"[Tagir Valeev - Generics](https://www.youtube.com/watch?v=usiKCn7SwxI&t=2234s)"**.
 
 ----
 
@@ -173,6 +232,7 @@ private static class Box<T> {
 	public T get() { return this.entry; }
 }
 ```
+For classes we should add them AFTER the class name.
 
 Thanks to the generic, the compiler can infer the type:
 ```java
@@ -205,7 +265,7 @@ Generics can be used not only in class declarations but also in method declarati
 A generic is declared last in a method, but before its first use.\
 Since a generic can be used as a method result, generics are declared BEFORE the return type for methods.
 
-For example:
+For example, we can specify generic for **[static method](https://www.youtube.com/watch?v=uZ8XM1dvgRA)**:
 ```java
 public static <K extends Number> Box<K> create(K obj) {
 	return new Box<K>(obj);
