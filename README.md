@@ -17,6 +17,7 @@
     - [Stream API](./core/stream.md)
     - [Generics](./core/generics.md)
 	- [Design patterns](./core/patterns.md)
+	- [JDBC](./core/jdbc.md)
 - Concurrency
     - [Threads](./threads/threads.md)
 - Tools
